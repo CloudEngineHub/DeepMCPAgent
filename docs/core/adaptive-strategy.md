@@ -78,7 +78,7 @@ other tools, contact addresses, or send data anywhere.
 At most 3 lessons are injected, highest confidence first. Expired, decayed and pending lessons are skipped. With a [context engine](context-engine.md), lessons go into its `strategies` layer instead.
 
 !!! note "Streaming"
-    `astream()` and `astream_with_tools()` neither record failures nor inject lessons. Use `ainvoke()` or `chat()` for agents that should learn.
+    `astream()` and `astream_with_tools()` learn like `ainvoke()`: they inject lessons before the run and record its failed tool calls, also when the run fails or the consumer stops reading early.
 
 ---
 

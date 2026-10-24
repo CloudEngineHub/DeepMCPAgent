@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -604,3 +606,36 @@ class TestExports:
 
         assert AgentEvent is not None
         assert EventNotifier is not None
+
+
+# ---------------------------------------------------------------------------
+# Docs: the event reference lists every process event the runtime emits
+# ---------------------------------------------------------------------------
+
+
+_REPO = Path(__file__).resolve().parents[1]
+_EVENTS_DOC = _REPO / "docs" / "core" / "events.md"
+_ROW = r"^\| [^|]*\| `({name})` \| (?:info|warning|error|critical) \|"
+
+
+class TestEventsDocs:
+    @staticmethod
+    def _emitted_process_events() -> set[str]:
+        source = (_REPO / "src" / "promptise" / "runtime" / "process.py").read_text(
+            encoding="utf-8"
+        )
+        return set(re.findall(r'_emit\(\s*"(process\.[a-z_]+)"', source))
+
+    def test_every_process_event_has_a_row_and_a_payload(self):
+        doc = _EVENTS_DOC.read_text(encoding="utf-8")
+        emitted = self._emitted_process_events()
+        assert "process.suspended" in emitted and len(emitted) >= 8
+        rows = re.findall(_ROW.format(name=r"process\.[a-z_]+"), doc, re.M)
+        payloads = re.findall(r"^\| `(process\.[a-z_]+)`(?: / `(process\.[a-z_]+)`)? \|", doc, re.M)
+        assert set(rows) == emitted
+        assert {name for pair in payloads for name in pair if name} == emitted
+
+    def test_the_event_count_matches_the_table(self):
+        doc = _EVENTS_DOC.read_text(encoding="utf-8")
+        claimed = int(re.search(r"(\d+) event types across", doc).group(1))
+        assert claimed == len(re.findall(_ROW.format(name=r"[a-z_]+\.[a-z_]+"), doc, re.M))

@@ -109,7 +109,7 @@ agent = await build_agent(model="openai:gpt-5-mini", agent_pattern="verify")
 
 `verify` catches the same genre of slip debate is good at — bad arithmetic, a skipped constraint, an unchecked assumption — but at roughly a third of the cost. Its measurable gains show up most on weaker or cheaper models, where the forced self-check recovers errors a single pass would miss. Reach for debate only when you specifically need *two independent perspectives arguing*, not just one model checking itself. When you simply want a cheap self-check, `verify` wins; the tradeoff is laid out in full in the [reasoning patterns reference](../../core/agents/reasoning-patterns.md).
 
-A practical rule of thumb: route your traffic. Send the small slice of genuinely high-stakes, contestable queries to a `debate` agent, and let a `verify` or plain `react` agent handle the rest. Two agents, one gate — that's how you get debate's scrutiny without paying for it on every request. If you're deciding between patterns more broadly, [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) compares nine reasoning patterns side by side.
+A practical rule of thumb: route your traffic. Send the small slice of genuinely high-stakes, contestable queries to a `debate` agent, and let a `verify` or plain `react` agent handle the rest. Two agents, one gate — that's how you get debate's scrutiny without paying for it on every request. If you're deciding between patterns more broadly, [AI Agent Reasoning Patterns in Python: From ReAct to Debate](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) explains how each reasoning pattern works and when to use it.
 
 ## Frequently asked questions
 

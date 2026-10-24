@@ -814,10 +814,15 @@ Rules of the file:
   the file has nothing for it either). An empty value *in the file* sets
   nothing.
 - **Where it is looked for.** The directory you run in, then its parents,
-  stopping after the project root — the first directory holding
-  `pyproject.toml` or `.git`. A `.env` above your project (`/tmp/.env` on a
-  shared host, another checkout, somebody's home directory) is never read.
-  The first file found wins; nothing further up is merged in.
+  stopping after the project root: the first directory holding
+  `promptise.toml`, `pyproject.toml` or `.git`. A `.env` above your project
+  (`/tmp/.env` on a shared host, another checkout, somebody's home
+  directory) is never read. A project folder with its own `promptise.toml`
+  inside another repository is its own project, so the repository's `.env`
+  is not read; to share it on purpose, list it in the manifest
+  (`[env] files = ["../.env"]`). With no project root above you at all, only
+  the directory you run in is searched. The first file found wins; nothing
+  further up is merged in.
 - **Which files are trusted.** Only a regular file and, on POSIX, one that
   you own and that nobody else can write (Windows has neither owners nor
   mode bits in this sense, so only the regular-file check applies there).
@@ -2095,7 +2100,7 @@ agent = await build_agent(
 | `approval` | `ApprovalPolicy \| ApprovalHandler \| Callable \| None` | `None` | Human-in-the-loop approval. An `ApprovalPolicy` gates the agent's own matching tool calls; any of the three also answers server-side approval gates that ask the client through MCP elicitation. See [Approval](../approval.md). It also answers the `HumanNode` steps of the agent's graph; without it a `HumanNode` fails the run. |
 | `events` | `EventNotifier \| None` | `None` | Webhook/event notifications. Emits structured events on invocation, tool, guardrail, budget, and process events. See [Events](../events.md). |
 | `on_tool_progress` | `Callable \| None` | `None` | Called as `(tool_name, progress, total, message)` for each progress notification an MCP tool sends during a call; sync or async. Progress is also emitted as `tool.progress` events when `events` is set. See [Progress Reporting](../../mcp/server/resilience-patterns.md#receiving-progress-in-a-promptise-client-or-agent). |
-| `max_invocation_time` | `float` | `0` | Maximum seconds per invocation. Raises `TimeoutError` and emits `invocation.timeout` event when exceeded. `0` = unlimited. |
+| `max_invocation_time` | `float` | `0` | Maximum seconds per invocation of `ainvoke()`, `chat()`, `invoke()`, `astream()` and `astream_with_tools()`. A stream's time runs from its first step to its last event, the consumer's time between events included. When exceeded the run (or stream) stops, `TimeoutError("Agent invocation exceeded Ns timeout")` is raised and an `invocation.timeout` event is emitted. A `TimeoutError` raised inside the run (a guardrail, the model client) is reported as that error, not as the invocation timeout. `0` = unlimited. |
 | `agent_pattern` | `str \| PromptGraph \| None` | `None` (`"react"`) | The reasoning graph: `"react"`, `"verify"`, `"managed"`, `"code-action"`, `"peoatr"`, `"research"`, `"autonomous"`, `"deliberate"`, `"debate"`, or your own `PromptGraph`. An unknown name raises `ValueError`. See [Reasoning Patterns](reasoning-patterns.md). |
 | `pattern` | `str \| PromptGraph \| None` | `None` | Deprecated alias of `agent_pattern`. |
 | `node_pool` | `list[BaseNode] \| None` | `None` | Build an autonomous graph from these nodes (the agent picks the next node each step). Takes precedence over `agent_pattern`. |
@@ -5254,8 +5259,9 @@ on and off. See [Guardrails](../guardrails.md).
 
 #### `max_invocation_time`
 
-Optional top-level number. Seconds one invocation may take; `0` (the default) means no
-limit. A longer run raises `TimeoutError`.
+Optional top-level number. Seconds one invocation may take (`ainvoke()`, `chat()`,
+`invoke()`, `astream()` and `astream_with_tools()`); `0` (the default) means no limit. A
+longer run raises `TimeoutError`.
 
 ## Environment Variable Resolution
 
@@ -5274,7 +5280,7 @@ servers:
     bearer_token: "${API_TOKEN}"
 ```
 
-Before resolving, the loader loads the nearest `.env` file -- the same file, by the same rule, as the `promptise` CLI and model setup: the working directory or a parent up to the project root (the folder with `pyproject.toml` or `.git`), never overriding a variable that is already set. `PROMPTISE_NO_DOTENV=1` turns it off. So `python run_agent.py` and `promptise agent` see the same variables.
+Before resolving, the loader loads the nearest `.env` file -- the same file, by the same rule, as the `promptise` CLI and model setup: the working directory or a parent up to the project root (the nearest folder with `promptise.toml`, `pyproject.toml` or `.git`, or the working directory itself when there is none), never overriding a variable that is already set. `PROMPTISE_NO_DOTENV=1` turns it off. So `python run_agent.py` and `promptise agent` see the same variables.
 
 Call `loader.validate_env_vars()` to check which variables are missing before resolving:
 
@@ -5864,6 +5870,23 @@ When you pass `agent_pattern=` to `build_agent()`:
     - Events and notifications
     - CallerContext per-request identity
 
+### In an Agent Runtime process
+
+A process started by a cron schedule, a webhook or another trigger picks its pattern in its config. `ProcessConfig(agent_pattern=...)` takes the same pattern names, or a `PromptGraph` in code, and every agent the process builds uses it (after a restart, a hot reload or new instructions):
+
+```python
+from promptise.runtime import ProcessConfig, TriggerConfig
+
+config = ProcessConfig(
+    model="openai:gpt-5-mini",
+    instructions="Review yesterday's failed orders and plan the fixes.",
+    agent_pattern="peoatr",
+    triggers=[TriggerConfig(type="cron", cron_expression="0 7 * * *")],
+)
+```
+
+In a `.agent` manifest it is the top-level `agent_pattern:` key. See [The agent's reasoning pattern](../../runtime/processes.md#the-agents-reasoning-pattern).
+
 ## See Also
 
 - [Reasoning Graph Overview](../engine.md): Architecture and engine details
@@ -5875,7 +5898,7 @@ When you pass `agent_pattern=` to `build_agent()`:
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- Which reasoning patterns were right on real tasks, and at what cost.
+    - [AI Agent Reasoning Patterns in Python: From ReAct to Debate](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- How each reasoning pattern works and how to choose one.
     - [ReAct Agent From Scratch in Python: The Reason-Act Loop](https://www.promptise.com/guides/view/build-reliable-reason-and-act-agent-loops-react-from-scratch) -- The Thought, Action, Observation loop built from scratch.
     - [Plan-and-Execute Agents in Python: Beyond the ReAct Loop](https://www.promptise.com/guides/view/plan-and-execute-agent-python) -- When planning first beats a ReAct loop.
 
@@ -8061,7 +8084,9 @@ assembles them with budgeting:
 - **Sent once.** The instructions (`identity`) and the tool definitions
   (`tools`) count toward the budget and appear in the report with
   `"sent": False`: the agent's graph sends them itself, so they are not
-  repeated.
+  repeated. When the instructions are a `Prompt`, the agent sends its
+  per-request render (with its context providers) once; `identity` budgets
+  its build-time render.
 - **The question stays as you passed it.** The current user message is the
   last message of the input, unchanged (a `HumanMessage`), and system messages
   in the input (yours, or runtime-injected ones such as `[Context State]`)
@@ -8165,7 +8190,7 @@ engine.set_content("company_policy", "Never discuss competitor pricing.")
 
 !!! tip "Learn the concept"
 
-    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents): Context window management for long agent runs, with real token counts.
+    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents): How to manage the context window in long agent runs.
 
 ================================================================================
 Page: LLM Guardrails: Prompt Injection and PII
@@ -9105,6 +9130,8 @@ policy = ApprovalPolicy(tools=["*"], handler=my_handler, on_decision=audit)
 
 The `approval.granted` / `approval.denied` events carry `decided_by` (and `classifier_layer` when a classifier decided) as well.
 
+With observability on (`observe=`), the `approval.*` events are on the agent's trace too, next to the tool call they belong to, and a denied call's `tool.call` and `tool.result` have `status="denied"`, `denied_by="approval"`, `decided_by` and the `reason`. An approval timeout adds an `approval.timeout` entry. See [Refused tool calls](observability.md#refused-tool-calls).
+
 ---
 
 ## Handlers: Detailed Setup
@@ -9197,12 +9224,14 @@ handler = WebhookApprovalHandler(
      X-Promptise-Request-Id: <request_id>
 
 4. Your API responds with 200 + decision when ready:
-   {"approved": true, "reviewer_id": "alice", "reason": "Looks good"}
+   {"request_id": "...", "approved": true, "reviewer_id": "alice", "reason": "Looks good"}
 
    Or 202 if still pending (handler continues polling)
 
 5. On timeout: handler raises TimeoutError → on_timeout action triggers
 ```
+
+Include `request_id` in the decision you return. When it is there, the handler only accepts a decision for the request it is waiting on: a response for another request id (a stale decision behind a fixed `poll_url`, or a replayed one) is logged and ignored, and polling continues. Responses without `request_id` are still accepted. The handler takes one decision per request id: asked again about an id it already decided, it raises `ApprovalReplayError` and the gate denies the call.
 
 #### HMAC verification on your approval service
 
@@ -9212,9 +9241,10 @@ Verify `X-Promptise-Signature` with `verify_webhook_signature()`. Pass it the ra
 import os
 
 from fastapi import FastAPI, HTTPException, Request
-from promptise.approval import verify_webhook_signature
+from promptise.approval import RequestIdCache, verify_webhook_signature
 
 app = FastAPI()
+seen_requests = RequestIdCache()  # one per process, shared by every request
 
 @app.post("/requests")
 async def receive_approval_request(request: Request):
@@ -9223,13 +9253,14 @@ async def receive_approval_request(request: Request):
         body,
         request.headers.get("X-Promptise-Signature"),
         os.environ["APPROVAL_WEBHOOK_SECRET"],
-        max_age=300,  # also reject requests older than 5 minutes (replay protection)
+        max_age=300,  # reject requests whose timestamp is more than 5 minutes off
+        replay_cache=seen_requests,  # reject a request_id that already passed
     ):
         raise HTTPException(status_code=401)
     ...
 ```
 
-It returns `True` only when the body is a JSON object with every signed field and the signature matches. With `max_age` set, the `timestamp` must also be within that many seconds of now. To verify without Promptise installed, compute the same value yourself. The signature is HMAC-SHA256 over sorted-key JSON of the six signed fields:
+It returns `True` only when the body is a JSON object with every signed field and the signature matches. With `max_age` set, the `timestamp` must also be within that many seconds of now. With `replay_cache`, the `request_id` must not have passed before: a replayed copy of a signed request is rejected and logged on the `promptise.approval` logger. The cache remembers an id for twice `max_age` (the longest a timestamp stays within `max_age` of now), or for its own `ttl` without `max_age`, and keeps at most `max_size` ids (10,000 by default), dropping the oldest first. It lives in memory: when several processes receive webhooks, check `request_id` against a shared store yourself. To verify without Promptise installed, compute the same value yourself. The signature is HMAC-SHA256 over sorted-key JSON of the six signed fields:
 
 ```python
 import hashlib, hmac, json
@@ -9308,7 +9339,7 @@ async def approval_ui_loop():
 | Method | Description |
 |---|---|
 | `handler.request_queue` | `asyncio.Queue[ApprovalRequest]`: read pending requests from here |
-| `handler.submit_decision(request_id, decision)` | Submit a decision for a pending request. Raises `KeyError` if the request_id is unknown or already resolved. |
+| `handler.submit_decision(request_id, decision)` | Submit a decision for a pending request. Raises `KeyError` if the request_id is unknown or timed out, and `ApprovalReplayError` (a `KeyError` subclass) if it already has a decision: the first decision stands, and the second is logged. |
 
 ### Custom Handler
 
@@ -9512,11 +9543,22 @@ run instead of approving.
 - Payload: sorted-key JSON of `request_id`, `tool_name`, `arguments`, `agent_id`, `caller_user_id` and `timestamp` (`promptise.approval.SIGNED_FIELDS`)
 - Secret: Your `secret` parameter
 
-Verify this in your approval API with [`verify_webhook_signature()`](#hmac-verification-on-your-approval-service) to reject spoofed requests, and pass `max_age` to reject replayed ones.
+Verify this in your approval API with [`verify_webhook_signature()`](#hmac-verification-on-your-approval-service) to reject spoofed requests. Pass `max_age` to reject old ones and `replay_cache` to reject a request that already passed.
 
 ### Single-Use Request IDs
 
-Every `request_id` is generated with `secrets.token_hex(16)`: 128 bits of cryptographic randomness. Request IDs are tracked per-agent to prevent replay attacks.
+Every `request_id` is generated with `secrets.token_hex(16)`: 128 bits of cryptographic randomness. Each id takes exactly one decision. A second decision for an id is refused and logged as a warning on the `promptise.approval` logger (`promptise.server.approval` on an MCP server):
+
+| Where | A second decision for the same `request_id` |
+|---|---|
+| The agent's gate (`ApprovalPolicy`) | Denied by the gate (`decided_by="gate"`), without asking the reviewer. |
+| `QueueApprovalHandler.submit_decision()` | Raises `ApprovalReplayError`; the first decision stands. |
+| `WebhookApprovalHandler` | A poll response carrying another request's `request_id` is ignored; asking again about a decided id raises `ApprovalReplayError`, which the gate turns into a denial. |
+| `verify_webhook_signature(..., replay_cache=...)` | Returns `False`. |
+| MCP server: `PendingApprover.decide()` / `approvals_decide` | Returns `False` / `{"resolved": false, "error": "... already decided ..."}`. |
+| MCP server: `ApprovalGateMiddleware` | The call is denied with `APPROVAL_DENIED`. |
+
+Decided ids are kept in a `RequestIdCache`: in memory, per gate or handler, for the approval `timeout` (an id is only useful while its request can still be decided), at most 10,000 at a time with the oldest dropped first. They are not shared between processes and do not survive a restart.
 
 ### Argument Redaction
 
@@ -9682,7 +9724,8 @@ Cached responses bypass approval entirely: tools aren't called on cache hits, so
 | Scenario | Behavior |
 |---|---|
 | **Tool doesn't match any pattern** | Executes immediately, zero overhead. |
-| **Approval arrives after timeout** | Discarded. Agent already received the timeout decision. Late approvals are logged. |
+| **Approval arrives after timeout** | Discarded. Agent already received the timeout decision. `QueueApprovalHandler.submit_decision()` raises `KeyError` for it. |
+| **A second decision for the same request** | Refused and logged; the first decision stands. See [Single-Use Request IDs](#single-use-request-ids). |
 | **Agent crash during pending approval** | On restart, the pending approval is gone. The agent starts fresh. |
 | **Multiple tools need approval in one invocation** | When the model requests them in the same turn, they run concurrently, so the handler receives all requests at once and each is decided independently. Set `sequential=True` to ask one at a time: each request waits until the previous one in the same invocation is decided. Other invocations aren't held up. |
 | **Agent retries denied tool** | After `max_retries_after_deny` denials of that tool within `deny_window`, for the same user and session (`deny_scope`), it is denied without asking the reviewer. Other users and sessions are still asked. See [Repeated denials](#repeated-denials). |
@@ -9710,6 +9753,8 @@ Cached responses bypass approval entirely: tools aren't called on cache hits, so
 | `QueueApprovalHandler` | `from promptise import QueueApprovalHandler` | asyncio.Queue for in-process UIs |
 | `approval_elicitation_callback` | `from promptise import approval_elicitation_callback` | MCP client elicitation callback that asks a handler (server-side gates) |
 | `verify_webhook_signature` | `from promptise.approval import verify_webhook_signature` | Check `X-Promptise-Signature` on your approval service |
+| `RequestIdCache` | `from promptise.approval import RequestIdCache` | Request ids that already had their decision (TTL and size bounded); pass to `verify_webhook_signature(replay_cache=...)` |
+| `ApprovalReplayError` | `from promptise.approval import ApprovalReplayError` | Raised for a second decision on the same request id (a `KeyError` subclass) |
 | `wrap_tools_with_approval` | `from promptise.approval import wrap_tools_with_approval` | Gate a list of tools without `build_agent()` |
 
 ---
@@ -9849,7 +9894,19 @@ ApprovalRule(tool="issue_refund", predicate=is_small_refund, reason="small refun
 | `tool` | `fnmatch(request.tool_name, tool)` |
 | `user` | `request.caller_user_id == user` (from the [`CallerContext`](approval.md#multi-user)) |
 | `argument_contains` | the substring appears in `json.dumps(arguments, sort_keys=True, ensure_ascii=False)` |
-| `predicate` | `await predicate(request)` is truthy. A predicate that raises counts as *no match* (and is logged). |
+| `predicate` | `await predicate(request)` is truthy. See [A rule that raises](#a-rule-that-raises) for what happens when it raises. |
+
+### A rule that raises
+
+A rule that cannot be evaluated (its predicate raises, or the arguments cannot be serialized for `argument_contains`) never lets a call through. The classifier logs a warning on the `promptise.approval.classifier` logger and counts it in `stats.errors`, then:
+
+| Rule list | What happens to the call |
+|---|---|
+| `deny_rules` | Denied. `decided_by="classifier"`, `trace.layer="deny_rule"`, `trace.matched_rule` is the broken rule, and the reason names the exception type. |
+| `ask_rules` | Sent to the fallback handler, as if the rule had matched. |
+| `allow_rules` | Not allowed. Sent to the fallback handler straight away (`trace.layer="error"`), so the read-only check and the LLM classifier don't decide it either. |
+
+Only rules whose `tool` and `user` filters match the call run their predicate, so a broken rule for `delete_*` does not affect other tools. `ApprovalRule.matches()` called on its own still returns `False` for a rule that raises; `ApprovalRule.evaluate()` raises `RuleEvaluationError` instead, with the original exception in `error`.
 
 ### `argument_contains` matches JSON
 
@@ -9949,7 +10006,7 @@ Every decision the classifier returns carries its trace in `decision.trace`, and
 | `decision.decided_by` | `decision.trace.layer` |
 |---|---|
 | `"classifier"` | `"deny_rule"`, `"allow_rule"`, `"read_only"`, `"llm_allow"`, `"llm_deny"` |
-| `"reviewer"` (the fallback's decision) | `"ask_rule"`, `"llm_escalate_then_fallback"`, `"fallback"`, `"error"` (the classifier raised and fell back) |
+| `"reviewer"` (the fallback's decision) | `"ask_rule"`, `"llm_escalate_then_fallback"`, `"fallback"`, `"error"` (the classifier or an allow rule raised and the fallback decided) |
 
 `trace.rule_reason` holds the matched rule's `reason` or the LLM's reason, and `trace.matched_rule` the rule itself.
 
@@ -10824,7 +10881,7 @@ Yes. Tool optimization modifies the tool definitions before they reach LangChain
 
 !!! tip "Learn the concept"
 
-    - [Too Many MCP Tools? LLM Tool Selection, Measured](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection): What 122 tools do to accuracy, tokens and latency, and how selection fixes it.
+    - [Too Many MCP Tools? How to Fix LLM Tool Selection in Python](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection): Why too many tools lead a model to the wrong one, how semantic tool selection works, and how to check and tune it.
 
 ================================================================================
 Page: LLM Fallback Across Model Providers
@@ -11092,7 +11149,7 @@ other tools, contact addresses, or send data anywhere.
 At most 3 lessons are injected, highest confidence first. Expired, decayed and pending lessons are skipped. With a [context engine](context-engine.md), lessons go into its `strategies` layer instead.
 
 !!! note "Streaming"
-    `astream()` and `astream_with_tools()` neither record failures nor inject lessons. Use `ainvoke()` or `chat()` for agents that should learn.
+    `astream()` and `astream_with_tools()` learn like `ainvoke()`: they inject lessons before the run and record its failed tool calls, also when the run fails or the consumer stops reading early.
 
 ---
 
@@ -11764,14 +11821,14 @@ agent = await build_agent(
 
 ## Event Taxonomy
 
-25 event types across 9 categories. Events marked *runtime* come from an [`AgentProcess`](../runtime/index.md); the rest come from any agent built with `events=`.
+29 event types across 9 categories. Events marked *runtime* come from an [`AgentProcess`](../runtime/index.md); the rest come from any agent built with `events=`.
 
 | Category | Event Type | Severity | When it fires |
 |----------|-----------|----------|---------------|
 | **Invocation** | `invocation.start` | info | Agent begins processing |
 | | `invocation.complete` | info | Agent finishes successfully |
 | | `invocation.error` | error | Unhandled exception during invocation |
-| | `invocation.timeout` | error | Invocation exceeded `max_invocation_time` |
+| | `invocation.timeout` | error | Invocation exceeded `max_invocation_time` (`data`: `timeout_seconds`, and `streaming: true` for `astream()` / `astream_with_tools()`) |
 | **Tools** | `tool.error` | error | A tool call raised, or an MCP tool returned an error result |
 | | `tool.slow` | warning | A tool call took longer than `slow_tool_threshold` (default 5s) |
 | | `tool.progress` | info | An MCP tool reports progress (`data`: `tool_name`, `progress`, `total`, `message`) |
@@ -11791,7 +11848,11 @@ agent = await build_agent(
 | **Process** *(runtime)* | `process.started` | info | Agent process started |
 | | `process.stopped` | info | Agent process stopped |
 | | `process.failed` | critical | Agent process entered FAILED state (failed start, or `max_consecutive_failures` reached) |
-| | `process.restarted` | warning | Restart policy is restarting the process (`attempt`, `max_restarts`, `reason`) |
+| | `process.restarted` | warning | Restart policy is restarting the process (`attempt`, `max_restarts`, `reason`), or a `max_lifetime` recycle |
+| | `process.restart_exhausted` | critical | The process failed with `max_restarts` already used up; it stays `FAILED` |
+| | `process.suspended` | warning | The process entered `SUSPENDED`: `suspend()`, `idle_timeout`, a budget limit with `on_exceeded="pause"` or `"escalate"` (reason `"budget"`), a health anomaly with `on_anomaly="pause"` or `"escalate"`, or a rewind |
+| | `process.resumed` | info | The process left `SUSPENDED`: `resume()`, a trigger event for an idle-suspended process, or the end of a rewind |
+| | `process.rewound` | warning | `rewind()` applied a rewind |
 | **Cache** | `cache.purged` | info | A user's cached entries were deleted with `purge_user()` |
 
 `tool.error` and `tool.slow` are emitted whenever `events=` is set — they don't need `observe=True`.
@@ -11833,10 +11894,16 @@ The `data` of each event:
 | `health.recovered` | `process_name` |
 | `process.started` / `process.stopped` | `process_name`, `process_id` |
 | `process.failed` | `process_name`, `process_id`, `reason`, `error` |
-| `process.restarted` | `process_name`, `process_id`, `reason`, `attempt`, `max_restarts` |
+| `process.restarted` | `process_name`, `process_id`, `reason`, `attempt` (`None` for a `max_lifetime` recycle), `max_restarts` |
+| `process.restart_exhausted` | `process_name`, `process_id`, `reason`, `restarts`, `max_restarts`, `error` |
+| `process.suspended` | `process_name`, `process_id`, `reason` (`"manual"`, `"idle"`, `"budget"`, `"health"` or `"rewind"`) |
+| `process.resumed` | `process_name`, `process_id`, `reason` (`"manual"`, `"trigger"` or `"rewind"`), `suspended_for` (the reason of the suspension) |
+| `process.rewound` | `process_name`, `process_id`, `target_entry_id`, `mode`, `actor`, `entries_affected` |
 | `cache.purged` | `user_id`, `entries_removed` |
 
 Approvals that an MCP server requests through elicitation (server-side gates) emit the same `approval.*` events with `source: "mcp_elicitation"` and `server`.
+
+[Lifecycle events](../runtime/lifecycle.md#lifecycle-events) lists the same `process.*` events next to the process states and transitions they belong to.
 
 ---
 
@@ -12191,15 +12258,18 @@ Every invocation (`ainvoke`, `chat`, `astream`, `astream_with_tools`) is an **ag
 |---|---|---|
 | `agent.input` | The invocation starts | `input_length`, `model` (+ `input_preview` when text is recorded) |
 | `llm.start` / `llm.end` | Each LLM turn (STANDARD and FULL) | `model`, `latency_ms`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `tool_calls` (+ `prompt_preview` / `response_preview`) |
-| `tool.call` | A tool is called | `tool_name`, `arguments` |
+| `tool.call` | A tool is called | `tool_name`, `arguments` (JSON data, see [Tool arguments](#tool-arguments)) |
 | `tool.result` | The tool returned | `tool_name`, `latency_ms`, `result_preview` |
 | `tool.error` | The tool failed — it raised, or an MCP server answered `isError: true` (e.g. a `ToolError`) | `tool_name`, `latency_ms`, `error_type`, `error` |
+| `approval.requested` / `approval.granted` / `approval.denied` / `approval.timeout` | An [approval gate](approval.md) asked for, got or timed out waiting for a decision | `tool_name`, `request_id`, and `arguments` (requested; left out with `record_tool_io=False`), `reviewer` (granted), `reason` and `decided_by` (granted, denied), `timeout` |
 | `llm.error`, `llm.retry` | An LLM call failed or was retried | `error_type`, `error`, `attempt` |
 | `cache.miss` / `cache.store` / `cache.hit` | Semantic cache activity | `scope`, `ttl` |
 | `agent.output` | The invocation finished | `duration_ms`, the run's `prompt_tokens` / `completion_tokens` / `total_tokens`, `llm_call_count`, `tool_call_count`, `error_count`, `cache_hit`, `output_length` (+ `output_preview`) |
 | `agent.error` | The invocation raised | `error_type`, `error`, and the same run totals |
 
-Every event recorded during a run has `parent_id` set to the run's `agent.input` entry, so you can pull one request out of a busy timeline (`collector.query(...)` then filter on `parent_id`), and the OpenTelemetry transporter turns each run into one trace. Events also carry the caller's `user_id` and `session_id` (see [Multi-User Attribution](#multi-user-attribution)).
+A call refused before it ran is a `tool.call` and a `tool.result` like any other, with `status="denied"`, `denied_by` and `reason`; see [Refused tool calls](#refused-tool-calls).
+
+Every event recorded during a run has `parent_id` set to the run's `agent.input` entry, so you can pull one request out of a busy timeline (`collector.query(...)` then filter on `parent_id`), and the OpenTelemetry transporter turns each run into one trace. Events also carry the caller's `user_id`, `tenant_id` and `session_id` (see [Multi-User Attribution](#multi-user-attribution)).
 
 ---
 
@@ -12253,6 +12323,42 @@ Two switches decide whether user and model text lands in your traces:
 | `record_tool_io` | `True` | `arguments` on `tool.call`, `result_preview` on `tool.result`, `error` and `traceback` on `tool.error`. With `False` the events keep the tool name, latency and error type, plus `arguments_length` / `result_length`. |
 
 Tool arguments are on by default because they are what makes a trace debuggable — but they often carry user data (names, emails, account numbers). Set `record_tool_io=False` when traces leave your trust boundary (a hosted APM, a shared log pipeline). Cache events never copy the user's query into their text.
+
+### Tool arguments
+
+A `tool.call` entry's `arguments` are JSON data, so you can read a field without parsing text:
+
+```python
+call = agent.collector.query(event_types=["tool.call"])[0]
+call.metadata["arguments"]          # {"order": {"sku": "MS-30", "qty": 2}, "note": "gift"}
+call.metadata["arguments"]["order"]["sku"]   # "MS-30"
+```
+
+A structured call is a dict; a tool given plain text keeps the text. Pydantic models, dataclasses, dates and sets become their JSON form, strings longer than 2,000 characters are cut with a `[truncated, N total chars]` note, and a list or object keeps its first 200 items. Redaction (`redact_sensitive`) works on the dict, so the value of a credential key such as `password` is replaced at any depth.
+
+Before this change `arguments` was the Python text of the call (`"{'sku': 'MS-30'}"`). Code that parsed it should read the dict instead; the `--tui` and `--devtools` views show both forms.
+
+### Refused tool calls
+
+A tool call can be refused before the tool runs: by the Agent Runtime's [autonomy budget](../runtime/governance/budget.md) (`max_irreversible_per_run`, `max_tool_calls_per_run`, ...) or by an [approval gate](approval.md) whose reviewer, classifier or timeout says no. Both are on the trace:
+
+| Refused by | `tool.call` | `tool.result` |
+|---|---|---|
+| Autonomy budget | `status="denied"`, `denied_by="budget"`, `reason`, `limit_name`, `limit_value`, `current_value`, `arguments` | the same fields, `latency_ms=0` |
+| Approval gate | as for any call, then the same denial fields as the `tool.result` once the gate decides | `status="denied"`, `denied_by="approval"`, `reason`, `decided_by` (`reviewer`, `classifier`, `gate`), `request_id` |
+
+```python
+denied = [
+    e for e in agent.collector.query(event_types=["tool.result"])
+    if e.metadata.get("status") == "denied"
+]
+for e in denied:
+    print(e.metadata["tool_name"], e.metadata["denied_by"], e.metadata["reason"])
+```
+
+The gate decides after a gated call's `tool.call` is recorded, so the entry is marked in place: the collector's entries and a `CALLBACK` transporter's entry objects have the fields, while a transporter that wrote the entry out when the call started (a log or a file) has it without them.
+
+`get_stats()` counts them as `tool_denied_count`, not as errors, and the [`approval.*` events](#what-gets-recorded) of the gate are on the timeline next to the call, with the same `parent_id`. `promptise run --devtools` prints each refusal once (`⊘ wire_money refused (budget) ...`), and its summary adds a `refused` count; the TUI shows the call with status `denied`.
 
 Whatever is recorded is scrubbed first: with `redact_sensitive=True` (the default) every event's metadata and details pass through `promptise.observability.redact_sensitive` before they are stored or reach a transporter, so the HTML report, the NDJSON stream, log files, webhooks and OpenTelemetry spans all get the redacted text:
 
@@ -12457,7 +12563,7 @@ invoke_agent shop                    3.7 s   enduser.id=customer-42  session.id=
 - The run span lasts from `agent.input` to `agent.output` (or `agent.error`); each LLM call (`llm.start` → `llm.end`) and tool call (`tool.call` → `tool.result` / `tool.error`) is a child span with its real start and end time, so span durations are the latencies.
 - Failed tool calls, LLM calls and runs get an `ERROR` status. Other events of the run (cache hits, retries) are span events on the run span.
 - If an OpenTelemetry span is active when you invoke the agent — say, the server span of an instrumented FastAPI app — the run span becomes its child, so the agent joins the request's trace.
-- Attributes follow the GenAI semantic conventions (`gen_ai.operation.name`, `gen_ai.agent.name`, `gen_ai.request.model`, `gen_ai.usage.input_tokens` / `output_tokens`, `gen_ai.tool.name`), plus `enduser.id` and `session.id` from the `CallerContext`, `promptise.correlation_id` from the config, and every scalar metadata field as `promptise.<key>`.
+- Attributes follow the GenAI semantic conventions (`gen_ai.operation.name`, `gen_ai.agent.name`, `gen_ai.request.model`, `gen_ai.usage.input_tokens` / `output_tokens`, `gen_ai.tool.name`), plus `enduser.id`, `promptise.tenant_id` and `session.id` from the `CallerContext`, `promptise.correlation_id` from the config, every scalar metadata field as `promptise.<key>`, and a tool call's arguments as one JSON string, `promptise.arguments`.
 - LLM spans need `STANDARD` or `FULL`; at `BASIC` a run has tool spans only.
 
 `OTLPTransporter` creates its own `TracerProvider` and never replaces the global one. To send spans through your application's provider (and its exporters, sampling and resource attributes) instead, attach the transporter yourself:
@@ -12515,35 +12621,46 @@ This configuration:
 
 ## Multi-User Attribution
 
-Every `TimelineEntry` carries the authenticated caller's `user_id` and `session_id`. The `ObservabilityCollector` reads these automatically from the `CallerContext` contextvar at record time — there is nothing to wire manually.
+Every `TimelineEntry` carries the authenticated caller's `user_id`, `tenant_id` and `session_id`. The `ObservabilityCollector` reads them from the `CallerContext` of the running call at record time — there is nothing to wire manually. The session is the `session_id` passed to `agent.chat(...)` (or `caller.metadata["session_id"]`).
 
 ```python
-from promptise.agent import CallerContext, _caller_ctx_var
-from promptise.observability import ObservabilityCollector, TimelineEventType
+from promptise import CallerContext
 
-collector = ObservabilityCollector()
-token = _caller_ctx_var.set(CallerContext(user_id="alice", metadata={"session_id": "sess-1"}))
-try:
-    entry = collector.record(TimelineEventType.TOOL_CALL, details="search(q=...)")
-finally:
-    _caller_ctx_var.reset(token)
+await agent.chat(
+    "Where is my order?",
+    session_id="sess-1",
+    caller=CallerContext(user_id="alice", tenant_id="acme"),
+)
 
-assert entry.user_id == "alice"
-assert entry.session_id == "sess-1"
+entry = agent.collector.query(event_types=["tool.call"])[0]
+entry.user_id        # "alice"
+entry.tenant_id      # "acme"
+entry.isolation_key  # "acme::alice"
+entry.session_id     # "sess-1"
 ```
+
+Two tenants can each have a user called `alice`. The tenant keeps them apart: `isolation_key` is `"{tenant_id}::{user_id}"` (or the plain `user_id` without a tenant), the same key the cache, memory and conversation ownership use.
 
 ### Per-tenant queries
 
 | Method | Returns | Description |
 |---|---|---|
-| `collector.query(user_ids=[...], session_ids=[...])` | `list[TimelineEntry]` | Filter the ring buffer by user, session, event type, or time window |
-| `collector.for_user(user_id)` | `list[TimelineEntry]` | Shorthand for a single tenant's events |
-| `collector.get_users()` | `list[str]` | Unique sorted `user_id`s present in the buffer |
-| `collector.purge_user(user_id)` | `int` | Deletes one user's data on request — drops every entry owned by that user |
+| `collector.query(user_ids=[...], tenant_ids=[...], session_ids=[...])` | `list[TimelineEntry]` | Filter the ring buffer by user, tenant, session or event type. `user_ids` matches the user id in any tenant; add `tenant_ids` for one tenant (`None` in the list selects entries without a tenant) |
+| `collector.for_user(user_id, tenant_id=None)` | `list[TimelineEntry]` | One caller's events. Pass the caller's `user_id` and `tenant_id`, or the isolation key (`"acme::alice"`) |
+| `collector.get_users()` | `list[str]` | Unique sorted owners in the buffer, as isolation keys (`"alice"`, `"acme::alice"`) |
+| `collector.purge_user(user_id, tenant_id=None)` | `int` | Deletes one caller's data on request. Takes the same arguments as `for_user` and never touches another tenant's user with the same id |
 
-Entries without a caller (system events like `HEALTH_CHECK`) keep `user_id=None` and `session_id=None`; `purge_user` never touches them.
+```python
+collector.purge_user("alice", tenant_id="acme")   # acme's Alice
+collector.purge_user("acme::alice")               # the same
+collector.purge_user("alice")                     # only Alice without a tenant
+```
 
-`TimelineEntry.to_dict()` includes both fields, so `STRUCTURED_LOG` / `JSON` / `WEBHOOK` / `OTLP` transporters all emit per-tenant attribution automatically — no custom transporter code required.
+`purge_user("alice")` without a tenant removes only the entries recorded without one, as `MemoryProvider.purge_user` does. When it keeps entries of a tenant's `alice`, it logs a warning that says how many, so a deletion request that forgot the tenant does not pass unnoticed.
+
+Entries without a caller (system events like `HEALTH_CHECK`) keep `user_id=None`, `tenant_id=None` and `session_id=None`; `purge_user` never touches them.
+
+`TimelineEntry.to_dict()` includes these fields, so the `JSON`, `WEBHOOK` and `HTML` transporters carry per-tenant attribution with no custom transporter code, and `OTLP` sets `enduser.id`, `promptise.tenant_id` and `session.id`.
 
 ---
 
@@ -12803,15 +12920,15 @@ config = servers_to_mcp_config(servers)
 - [Building Agents](agents/building-agents.md): use server specs with `build_agent`
 
 ================================================================================
-Page: ModelLike and Core Type Aliases
+Page: ModelLike: the Model Type for build_agent
 URL: https://docs.promptise.com/core/types/
 ================================================================================
 
-# Types & ModelLike
+# ModelLike and Core Types
 
 The `types` module provides the central type aliases and re-exports used across
 the Promptise framework.  Its most important export is `ModelLike`, which
-defines the three ways you can specify a language model.
+defines the four ways you can specify a language model.
 
 **Source:** `src/promptise/types.py`
 
@@ -12978,14 +13095,14 @@ asyncio.run(main())
 - [Building Agents](agents/building-agents.md): use `ModelLike` with `build_agent`
 
 ================================================================================
-Page: Default System Prompt for build_agent
+Page: DEFAULT_SYSTEM_PROMPT: the Default System Prompt
 URL: https://docs.promptise.com/core/default-prompt/
 ================================================================================
 
-# Default System Prompt
+# Default System Prompt (DEFAULT_SYSTEM_PROMPT)
 
 An agent built with `build_agent` without `instructions` receives a default system
-prompt that establishes baseline behaviour: tool usage discipline, schema inspection, and
+prompt, `DEFAULT_SYSTEM_PROMPT` from `promptise.prompt`, that establishes baseline behaviour: tool usage discipline, schema inspection, and
 result citation.  The default prompt lives in a single module so it can be
 reviewed, overridden, or extended without touching any builder logic.
 
@@ -13013,7 +13130,7 @@ asyncio.run(main())
 
 ## Concepts
 
-### The default prompt
+### The DEFAULT_SYSTEM_PROMPT constant
 
 The `DEFAULT_SYSTEM_PROMPT` constant contains the following instructions:
 
@@ -13916,7 +14033,7 @@ Every key is optional. An empty `promptise.toml` is a valid manifest.
 | `description` | string | none | A one-line description. |
 | `main` | string | the first existing of `main.py`, `agent.py`, `app.py` | The program `promptise run` runs, relative to the root. |
 | `agent` | string | none | An agent factory for the chat, once and serve modes: `file.py:function` or `package.module:function`. |
-| `python_path` | list of strings | `["."]` | Directories added to `sys.path`, relative to the root. |
+| `python_path` | list of strings | `["."]` | Directories added to `sys.path`, relative to the root. The run and `--check` both use them to import the agent factory. |
 
 ### `[scripts]`
 
@@ -14218,7 +14335,7 @@ The rules:
 - **Unsafe files are refused.** A file must be a regular file. On Linux and macOS it must be owned by you and not writable by other users. An unsafe or unreadable file is an error that names the file.
 - **`PROMPTISE_NO_DOTENV=1` turns file loading off.** No `.env`-style file is loaded. Use it in containers and CI, where the environment is set from outside.
 
-The CLI also loads a `.env` from the current directory (or a parent, up to the project root) before any command runs, under the same rules. See [Configuration & Secrets](../getting-started/configuration.md).
+The CLI also loads a `.env` from the current directory (or a parent, up to the project root) before any command runs, under the same rules. The folder holding `promptise.toml` is a project root, so a project nested in another repository never reads that repository's `.env`; list it in `[env] files` (`["../.env"]`) to use it on purpose. See [Configuration & Secrets](../getting-started/configuration.md).
 
 `promptise run` never shows variable values. The TUI and the run report list only whether each variable is set.
 
@@ -14378,8 +14495,11 @@ If anything is wrong, it exits with code 2 and starts nothing.
 
 `--check` runs the same checks and also checks the entry itself: a script must compile, and a factory's module must import and define the factory. Then it exits: 0 when the project is ready, 2 when it is not. Importing a factory module runs its module-level code; a script is only compiled, never run.
 
+The factory is imported the way the real run imports it: the project root and the `python_path` entries come first on `sys.path`. A factory in a package (`agent = "customer_agent.agent:create_agent"`) passes `--check` from any directory of the project.
+
 ```bash
 promptise run --check                    # main
+promptise run --mode chat --check        # the agent factory
 promptise run --prod --serve --check     # what the container will run
 ```
 
@@ -14717,11 +14837,11 @@ promptise run --list                   # list the scripts
 
 | Flag | Description |
 |---|---|
-| `-d`, `--devtools` | Live trace of every agent on stderr, and a summary at the end |
+| `-d`, `--devtools` | Live trace of every agent on stderr, and a summary at the end. Tool calls refused before they ran (autonomy budget, approval denial) are printed as `⊘ <tool> refused` with the reason, and counted as `refused` in the summary |
 | `-t`, `-tui`, `--tui` | Open the terminal UI |
 | `-w`, `--watch` | Restart the program when a project file changes |
 | `--prod` | Production behavior: JSON logs on stderr, preflight checks, graceful SIGTERM |
-| `--check` | Check the project and the entry, then exit (0 ready, 2 not ready) |
+| `--check` | Check the project and the entry, then exit (0 ready, 2 not ready). A factory is imported with the project root and `python_path` on `sys.path`, as in a real run |
 | `--mode` | `auto` (default), `script`, `chat`, `once` or `serve` |
 | `--serve` | Serve the agent factory over HTTP (`--mode serve`) |
 | `-i`, `--input` | Ask the agent factory one question and print the answer (`-` reads stdin) |
@@ -15234,7 +15354,7 @@ promptise agent config.superagent
 ---
 
 !!! tip "Environment variables"
-    A `.env` file in the working directory (or a parent, up to the project root -- the directory holding `pyproject.toml` or `.git`) is loaded automatically -- by the CLI and by plain scripts alike, never overriding a variable that is already set; `PROMPTISE_NO_DOTENV=1` turns it off. Only a regular file is loaded -- on POSIX one you own that nobody else can write -- and anything else is skipped with a warning naming it. The CLI loads it once, before any command runs, and prints `.env loaded from <path>` on stderr; a file it cannot read (permissions, not UTF-8) is one `Error:` line with exit code 2 naming the file, while `promptise --version` and `promptise --help` never touch it. Put `OPENAI_API_KEY` there for seamless usage; `promptise models env <provider>` prints the lines any other provider needs. See [Configuration & Secrets](../getting-started/configuration.md).
+    A `.env` file in the working directory (or a parent, up to the project root -- the nearest directory holding `promptise.toml`, `pyproject.toml` or `.git`, or the working directory itself when there is none) is loaded automatically -- by the CLI and by plain scripts alike, never overriding a variable that is already set; `PROMPTISE_NO_DOTENV=1` turns it off. Only a regular file is loaded -- on POSIX one you own that nobody else can write -- and anything else is skipped with a warning naming it. The CLI loads it once, before any command runs, and prints `.env loaded from <path>` on stderr; a file it cannot read (permissions, not UTF-8) is one `Error:` line with exit code 2 naming the file, while `promptise --version` and `promptise --help` never touch it. Put `OPENAI_API_KEY` there for seamless usage; `promptise models env <provider>` prints the lines any other provider needs. See [Configuration & Secrets](../getting-started/configuration.md).
 
 ---
 
@@ -15822,7 +15942,7 @@ run.
 - **Edge lookup by index**: outgoing edges are kept in a precomputed, priority-sorted index, rebuilt when edges change.
 - **Parallel tool calls**: two or more tool calls in one model reply run concurrently; their results are appended in the order the model asked for them.
 - **Binding reuse**: a `PromptNode` reuses its tool binding (`bind_tools()` and structured output) when it runs again in the same run with the same model and tools. The system prompt is rebuilt on every execution, since its inputs change.
-- **Full tool results by default**: a `PromptNode` passes tool results through as they are. They are cut only where you ask: `ToolNode(max_result_chars=4000)`, and the ledger excerpt of [context compaction](../guides/context-lifecycle.md) (`keep_result_chars`, 2,000).
+- **Full tool results by default**: a `PromptNode` passes tool results through as they are. They are cut only where you ask: `ContextCompaction(max_result_chars=...)` for every new result, `ToolNode(max_result_chars=4000)`, and the ledger excerpt of [context compaction](../guides/context-lifecycle.md) (`keep_result_chars`, 2,000). A new result that is cut ends with a marker that gives its full length and tells the model to ask for less.
 - **Bounded state**: observations (last 50), reflections (last 5) and messages (`max_messages`, 200) are capped per run.
 
 ## Runtime Tool Injection
@@ -15867,7 +15987,7 @@ action does and its limits.
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- Why a reasoning graph beats a single loop on some tasks, measured.
+    - [AI Agent Reasoning Patterns in Python: From ReAct to Debate](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- When a reasoning graph helps more than a single loop, and how to switch.
     - [Topic hub: Agent reasoning patterns](https://www.promptise.com/guides/topics/reasoning-patterns) -- Every guide on agent reasoning patterns.
 
 ================================================================================
@@ -16226,7 +16346,11 @@ A node with an `output_schema` adds no message to the conversation while the
 graph goes on (the model's reply is a parsed object, not an `AIMessage`). When
 such a node ends the run, the engine appends its output as JSON in a final
 `AIMessage`, so `ainvoke()` returns an answer; end a graph on a node that writes
-text when the answer should be prose.
+text when the answer should be prose. A reasoning node (`ValidateNode`,
+`CritiqueNode`, `ReflectNode`, `PlanNode` ...) judges or plans around an answer
+instead of writing one: when the conversation already ends on an answer, that
+answer stays the last message, and the node's output is in `NodeResult.output`
+and `state.context[output_key]` (`"validation"` for a `ValidateNode`).
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -17817,7 +17941,7 @@ agent = await build_agent(..., agent_pattern=graph)
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- How the prebuilt patterns compare on accuracy and cost.
+    - [AI Agent Reasoning Patterns in Python: From ReAct to Debate](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- How the prebuilt patterns work and which one fits a task.
     - [Plan-and-Execute Agents in Python: Beyond the ReAct Loop](https://www.promptise.com/guides/view/plan-and-execute-agent-python) -- Plan, act, verify, reflect, explained on one task.
 
 ================================================================================
@@ -18843,7 +18967,7 @@ the report of a failed agent run is `exc.report`.
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- Nine reasoning patterns run on the same tasks: accuracy versus cost.
+    - [AI Agent Reasoning Patterns in Python: From ReAct to Debate](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- How the prebuilt reasoning patterns work and how to choose one.
     - [Plan-and-Execute Agents in Python: Beyond the ReAct Loop](https://www.promptise.com/guides/view/plan-and-execute-agent-python) -- A plan, act, verify, reflect graph compared with ReAct.
 
 ================================================================================
@@ -22172,6 +22296,9 @@ Clients send tokens via the `Authorization: Bearer <token>` header. The provider
 | `issuer` | `None` | Required `iss` value |
 | `meta_key` | `"authorization"` | Lower-case header name that carries the token |
 | `cache_size` | `256` | Verified tokens kept in the LRU cache; `0` disables it |
+| `revoked_jtis` | `None` | Token ids (`jti`) to reject; see [Revoking tokens](#revoking-tokens) |
+| `revoked_subjects` | `None` | Subjects whose tokens are all rejected |
+| `is_revoked` | `None` | `(claims) -> bool`, sync or async, asked on every request; `True` rejects the token |
 
 **Token payload format:**
 
@@ -22233,6 +22360,46 @@ Clients send their key via the `x-api-key` header (configurable via `header`). T
 
 The header name is matched case-insensitively, as HTTP header names are: `header="X-Custom-Key"` and `header="x-custom-key"` read the same header. With `MCPServer(require_auth=True)`, the [transport gate](deployment.md#transport-level-auth-gate) reads the API key from the same header.
 
+#### Revoking and adding keys while the server runs
+
+Every change below applies to the next request, on the transport gate and in `AuthMiddleware`, without a restart.
+
+With a `keys` dict, use `revoke_key()` and `add_key()`:
+
+```python
+import os
+
+api_auth = APIKeyAuth(keys={os.environ["FRONTEND_KEY"]: "frontend-app"})
+
+api_auth.revoke_key(os.environ["FRONTEND_KEY"])   # True if the key was registered
+api_auth.add_key(new_key, {"client_id": "frontend-app", "roles": ["read"]})
+```
+
+To keep the keys somewhere else, pass a callable instead of the dict. Both forms can be sync or async:
+
+```python
+# keys=: returns the keys valid right now, called on every request
+api_auth = APIKeyAuth(keys=lambda: key_registry.snapshot())
+
+# lookup=: gets the presented key, returns its config, or None when the key
+# is unknown or revoked
+async def find_key(key: str) -> dict | None:
+    row = await db.fetch_api_key(hash_key(key))
+    if row is None or row.revoked:
+        return None
+    return {"client_id": row.client_id, "roles": row.roles, "tenant_id": row.tenant_id}
+
+api_auth = APIKeyAuth(lookup=find_key)
+```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `keys` | | A dict `{api_key: client_id_or_config}`, or a callable returning one |
+| `header` | `"x-api-key"` | Header that carries the key |
+| `lookup` | `None` | `(api_key) -> config \| None`, used instead of `keys`. It compares keys itself: store hashes and compare in constant time |
+
+Pass exactly one of `keys` and `lookup`. If the callable raises, the request is rejected with `Could not check the API key` and a warning is logged. `revoke_key()` and `add_key()` only work with a `keys` dict and raise `TypeError` otherwise. `verify_token(key)` is sync, so it cannot run an async callable and rejects the key; `averify_token(key)` runs it, and the transport gate uses `averify_token`.
+
 ### AsymmetricJWTAuth
 
 For production deployments using RS256 or ES256 (asymmetric) JWT tokens: common with Auth0, Keycloak, and other identity providers:
@@ -22258,7 +22425,7 @@ auth = AsymmetricJWTAuth(
 )
 ```
 
-`AsymmetricJWTAuth(public_key, *, algorithm="RS256", audience=None, issuer=None, meta_key="authorization", cache_size=256)` uses the same interface as `JWTAuth`: it works with `AuthMiddleware`, guards, and `ctx.client_id`. `public_key` is a PEM string or the path to a PEM file; `algorithm` must be `"RS256"` or `"ES256"` (anything else raises `ValueError`). Set `audience` for IdP-issued tokens: without it, a token that carries an `aud` claim is rejected. Requires the `PyJWT` and `cryptography` packages (optional dependencies).
+`AsymmetricJWTAuth(public_key, *, algorithm="RS256", audience=None, issuer=None, meta_key="authorization", cache_size=256, revoked_jtis=None, revoked_subjects=None, is_revoked=None)` uses the same interface as `JWTAuth`: it works with `AuthMiddleware`, guards, and `ctx.client_id`. `public_key` is a PEM string or the path to a PEM file; `algorithm` must be `"RS256"` or `"ES256"` (anything else raises `ValueError`). Set `audience` for IdP-issued tokens: without it, a token that carries an `aud` claim is rejected. Requires the `PyJWT` and `cryptography` packages (optional dependencies).
 
 ### JwksAuth
 
@@ -22285,6 +22452,7 @@ The validated token's `sub` and claims are surfaced on `ctx.client` (subject, is
 | `algorithms` | `("RS256", "ES256")` | Accepted signing algorithms (asymmetric only) |
 | `meta_key` | `"authorization"` | Header carrying the bearer token |
 | `leeway` | `60.0` | Seconds of clock skew allowed on `exp`, `nbf` and `iat` |
+| `revoked_jtis`, `revoked_subjects`, `is_revoked` | `None` | Deny list, as for `JWTAuth`; see [Revoking tokens](#revoking-tokens) |
 
 Keys are cached for five minutes; a token signed with an unknown `kid` triggers an immediate re-fetch (at most once per key id per minute), so a rotated key works on first use.
 
@@ -22300,7 +22468,39 @@ auth = JwksAuth.from_discovery(
 )
 ```
 
-The discovery document is fetched once (lazily, on the first verified call) and its `issuer` is checked against the configured one before its `jwks_uri` is trusted. `from_discovery(*, issuer, audience, algorithms=("RS256", "ES256"), meta_key="authorization", request_timeout=5.0, leeway=60.0)`.
+The discovery document is fetched once (lazily, on the first verified call) and its `issuer` is checked against the configured one before its `jwks_uri` is trusted. `from_discovery(*, issuer, audience, algorithms=("RS256", "ES256"), meta_key="authorization", request_timeout=5.0, leeway=60.0, revoked_jtis=None, revoked_subjects=None, is_revoked=None)`.
+
+### Revoking tokens
+
+A JWT is valid until its `exp`. To reject one sooner, `JWTAuth`, `AsymmetricJWTAuth` and `JwksAuth` keep an optional deny list, checked on every request after the signature and claims check, including tokens served from the verification cache:
+
+```python
+import os
+
+auth = JWTAuth(secret=os.environ["JWT_SECRET"])
+
+auth.revoke("2f6c1e0a9b7d4c3e")                 # one token, by its jti claim
+auth.revoke("2f6c1e0a9b7d4c3e", until=exp)      # ... forgotten after the token's exp
+auth.revoke(subject="agent-007")               # every token of this subject
+auth.unrevoke(subject="agent-007")             # True if it was listed
+```
+
+A subject entry matches the token's `sub`, or its `client_id` when it has no `sub`. Entries passed with `until` (a Unix time, normally the token's `exp`) are dropped once that time has passed, since an expired token is refused anyway; entries without it stay until `unrevoke()`. Revoking a single token needs a `jti` claim in it: `create_token()` does not add one, so pass it in the payload (`create_token({"sub": "agent-7", "jti": secrets.token_hex(16)})`) or revoke by subject. Start with a list with `revoked_jtis=[...]` and `revoked_subjects=[...]`.
+
+The deny list lives in the process. To share revocations between replicas, or keep them across restarts, pass `is_revoked`: it receives the verified claims on every request and returns `True` to reject the token. It can be sync or async:
+
+```python
+async def is_revoked(claims: dict) -> bool:
+    return await redis.sismember("revoked-jtis", claims.get("jti", ""))
+
+auth = JwksAuth(
+    jwks_url="https://idp.example.com/.well-known/jwks.json",
+    audience="api://my-mcp-server",
+    is_revoked=is_revoked,
+)
+```
+
+A revoked token is rejected with `Token has been revoked`. If `is_revoked` raises, the token is rejected (`Could not check whether the token was revoked`) and a warning is logged. `verify_token()` is sync, so with an async `is_revoked` it rejects every token; `averify_token()` runs the hook, and the [transport gate](deployment.md#transport-level-auth-gate) uses it.
 
 ### Custom auth provider
 
@@ -22331,6 +22531,42 @@ class OAuth2Introspection:
 
 Install it like any provider: `server.add_middleware(AuthMiddleware(OAuth2Introspection(introspect)))`. A tool declared with `roles=["admin"]` then passes for a token whose claims include `"roles": ["admin"]`. Without the `jwt_payload` claims the caller is authenticated but has no roles or scopes.
 
+**Refusing a request.** Raise `AuthenticationError` with the reason. The call ends with an `AUTHENTICATION_ERROR` result carrying your message, and the tool never runs. Returning `None`, `True`, `False` or an empty string is refused the same way, with the message `Authentication failed` and a warning in the server log, so a provider that forgets to raise can't let a caller through.
+
+**Refusing at the transport.** With `MCPServer(require_auth=True)` on HTTP or SSE, the [transport gate](deployment.md#transport-level-auth-gate) checks the credential on every HTTP request and answers a bad one with `401` before any MCP message is handled. The gate only has the credential (the bearer token, or the API key header), not a `RequestContext`, so it can't call `authenticate()`. It calls the provider's `async def averify_token(credential) -> bool` (or a sync `verify_token`) instead. The built-in providers have one. A custom provider without one still refuses every call in `AuthMiddleware`, but any client can open a session and list the tools, and the server logs a warning at startup. Add `averify_token` to close that gap:
+
+```python
+import hashlib
+import json
+from pathlib import Path
+
+from promptise.mcp.server import AuthenticationError, RequestContext
+
+
+class RevocableKeyAuth:
+    """API keys checked against a store that can revoke them while the server runs."""
+
+    header = "x-api-key"  # the header the transport gate reads the key from
+
+    def __init__(self, store: Path):
+        self._store = store
+
+    def _entry(self, key: str) -> dict | None:
+        entry = json.loads(self._store.read_text()).get(hashlib.sha256(key.encode()).hexdigest())
+        return None if entry is None or entry["revoked"] else entry
+
+    async def averify_token(self, credential: str) -> bool:
+        return self._entry(credential) is not None  # False: 401 at the transport
+
+    async def authenticate(self, ctx: RequestContext) -> str:
+        entry = self._entry(ctx.meta.get(self.header, ""))
+        if entry is None:
+            raise AuthenticationError("Invalid or revoked API key")
+        return entry["client"]
+```
+
+For keys alone, `APIKeyAuth(lookup=...)` does all of this for you (see [APIKeyAuth](#apikeyauth)).
+
 ## AuthMiddleware
 
 `AuthMiddleware` wraps an auth provider and runs it for tools, resources and prompts marked with `auth=True`:
@@ -22345,7 +22581,7 @@ server.add_middleware(AuthMiddleware(jwt_auth))
 
 | Parameter | Default | Description |
 |---|---|---|
-| `provider` | required | Any `AuthProvider`: an object with `async def authenticate(ctx) -> str` (the client id). `verify_token(token) -> bool` is optional and used by the [transport gate](deployment.md#transport-level-auth-gate) |
+| `provider` | required | Any `AuthProvider`: an object with `async def authenticate(ctx) -> str` (the client id; raise `AuthenticationError` to refuse). `averify_token(credential) -> bool` (or a sync `verify_token`) is optional; the [transport gate](deployment.md#transport-level-auth-gate) only runs for a provider that has one |
 | `on_authenticate` | `None` | `OnAuthenticateHook`: sync or async `(client: ClientContext, ctx: RequestContext)`, called after a successful authentication |
 | `tenant_claim` | `"tenant_id"` | JWT claim copied to `ctx.client.tenant_id` (string values only) |
 
@@ -22353,7 +22589,7 @@ When a tool has `auth=True`:
 
 1. The middleware calls `provider.authenticate(ctx)`.
 2. On success, `ctx.client_id` is set and `ctx.client` is populated with a full `ClientContext`: identity, roles, scopes, JWT claims (`iss`, `aud`, `sub`, `iat`, `exp`), client IP address, and user-agent.
-3. On failure, an `AuthenticationError` is returned to the client.
+3. On failure (the provider raised, or returned `None`, a bool or an empty string), an `AuthenticationError` is returned to the client and the tool does not run.
 
 Tools without `auth=True` pass through the middleware without authentication checks. `roles=[...]` and the built-in identity guards (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `HasAllScopes`, `RequireClientId`, `RequireTenant`, `HasTenant`) imply `auth=True`, since they can only pass once the caller is identified. A custom guard does not: give its tool `auth=True` if the guard reads `ctx.client`.
 
@@ -22609,6 +22845,16 @@ async def query(sql: str, db: Database = Depends(get_db)) -> list:
     return await db.execute(sql)
 ```
 
+!!! warning "Dependencies run before authentication and guards"
+    A call goes through argument validation, then dependency injection, then
+    the middleware chain (where `AuthMiddleware` runs), then guards, then the
+    handler. A dependency therefore cannot read the caller: inside it,
+    `get_context().client` has no `tenant_id`, roles or scopes yet. A dependency
+    that raises also hides the real outcome, so an anonymous caller sees the
+    dependency's error instead of `AUTHENTICATION_ERROR`. Inject only resources
+    that do not depend on the caller (connections, clients, settings), and read
+    `ctx.client` inside the handler for anything tenant- or user-specific.
+
 ### Supported dependency types
 
 | Type | Example | Lifecycle |
@@ -22794,12 +23040,14 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
 |---|---|---|
 | `JWTAuth(secret, audience, issuer, meta_key, cache_size)` | Class | HS256 JWT authentication provider |
 | `JWTAuth.create_token(payload, expires_in)` | Method | Create a signed JWT (testing utility) |
-| `JWTAuth.verify_token(token)` | Method | Check token validity without context |
-| `APIKeyAuth(keys, header)` | Class | Pre-shared API key authentication (simple or rich format) |
+| `JWTAuth.verify_token(token)` / `averify_token(token)` | Method | Check token validity without context (the async form also runs an async `is_revoked`) |
+| `JWTAuth.revoke(jti, subject, until)` / `unrevoke(jti, subject)` | Method | Add to or remove from the deny list (also on `AsymmetricJWTAuth` and `JwksAuth`) |
+| `APIKeyAuth(keys, header, lookup)` | Class | Pre-shared API key authentication (simple or rich format, a dict or a callable store) |
+| `APIKeyAuth.revoke_key(key)` / `add_key(key, config)` | Method | Change the keys of a running server (dict form) |
 | `AsymmetricJWTAuth(public_key, algorithm, audience, issuer)` | Class | RS256/ES256 asymmetric JWT authentication |
 | `JwksAuth(jwks_url, audience, issuer, algorithms, meta_key, leeway)` | Class | JWT authentication against an IdP's rotating JWKS keys |
 | `JwksAuth.from_discovery(issuer, audience, ...)` | Class method | Discover the JWKS URL from OIDC metadata |
-| `AuthProvider` | Protocol | `async authenticate(ctx) -> str` for custom providers |
+| `AuthProvider` | Protocol | `async authenticate(ctx) -> str` for custom providers (raise `AuthenticationError` to refuse); add `averify_token(credential) -> bool` for the transport gate |
 | `AuthMiddleware(provider, on_authenticate, tenant_claim)` | Class | Middleware that enforces auth and populates `ClientContext` |
 | `OnAuthenticateHook` | Type | `(ClientContext, RequestContext) -> None` (sync or async) |
 | `ClientContext` | Dataclass | Structured client info: identity, roles, scopes, JWT claims, IP, user-agent |
@@ -22822,7 +23070,7 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
     Never hardcode JWT secrets in source code. Use environment variables or a secrets manager. The `ServerSettings` class supports loading secrets from env vars with a configurable prefix.
 
 !!! tip "Token caching"
-    `JWTAuth` caches verified tokens in a thread-safe LRU (default: 256 entries). This avoids repeated HMAC-SHA256 computation when the same token is reused across requests, which is the common case for agent sessions.
+    `JWTAuth` caches verified tokens in a thread-safe LRU (default: 256 entries). This avoids repeated HMAC-SHA256 computation when the same token is reused across requests, which is the common case for agent sessions. The deny list and `is_revoked` are checked on cache hits too, so a revoked token is refused on its next request.
 
 ## What's Next
 
@@ -23160,6 +23408,7 @@ verified caller identity (client id, tenant, JWT subject).
 | No decision within `timeout` | **Denied by default** (`on_timeout="allow"` opts out, explicitly) |
 | Decision carries `modified_arguments` | **Denied**: the server-side gate cannot rewrite bound arguments, and executing the original args after a reviewer changed them would run something they didn't approve |
 | Handler crash | Denied via the error pipeline |
+| A second decision for the same request id | **Denied** (`APPROVAL_DENIED`) and logged; each request id takes one decision |
 
 `ApprovalGateMiddleware(handler, *, timeout=300.0, on_timeout="deny", include_arguments=True)`:
 
@@ -23176,7 +23425,7 @@ The gate only acts on tools declared with `requires_approval=True`; every other 
 
 ### `PendingApprover`: independent four-eyes review
 
-`PendingApprover(server=None, *, approver_role="approver", max_pending=100, max_pending_per_client=None, max_pending_per_tenant=None)`. Gated calls block in a pending store. A human holding `approver_role`
+`PendingApprover(server=None, *, approver_role="approver", max_pending=100, max_pending_per_client=None, max_pending_per_tenant=None, same_tenant_reviewers=True)`. Gated calls block in a pending store. A human holding `approver_role`
 reviews them through two auto-registered, role-guarded admin tools:
 
 ```text
@@ -23189,7 +23438,16 @@ approvals_decide(request_id, approve,     → release or deny; the reviewer's
 **Separation of duties is enforced:** `approvals_decide` rejects an
 *approval* whose reviewer `client_id` equals the request's original caller:
 you cannot approve your own call, even if you also hold `approver_role`
-(denying your own is always allowed). The store is process-local (like the
+(denying your own is always allowed).
+
+**Reviewers see only their own tenant:** `approvals_list` returns only the
+requests whose `tenant_id` matches the reviewer's, and `approvals_decide`
+answers another tenant's request id exactly like an unknown one. A reviewer
+can neither read another tenant's arguments nor release its call. A reviewer
+without a tenant sees only requests without one. For one platform-wide review
+team that decides for every tenant, pass `same_tenant_reviewers=False`.
+
+The store is process-local (like the
 in-memory job queue); calls that outlive the gate timeout are denied by
 default. Three caps bound the store, and beyond any of them a call is denied
 immediately rather than parked:
@@ -23209,6 +23467,14 @@ The caps nest (`max_pending_per_client` ≤ `max_pending_per_tenant` ≤
 reason names the cap that was hit (`per-tenant pending approval cap reached
 for tenant 'acme' (40 per tenant)`, `per-client pending approval cap reached
 for 'alice' (20 per client)`).
+
+**Each request id takes one decision.** A second `decide()` for an id that
+was already decided returns `False` and logs a warning on the
+`promptise.server.approval` logger; `approvals_decide` answers
+`{"resolved": false, "error": "approval request '...' was already decided; ..."}`,
+and the first decision stands. `approver.was_decided(request_id)` tells you
+whether an id already had its decision. Decided ids are remembered in memory
+for the request's `timeout` (at most 10,000 of them).
 
 ### `ElicitationApprover`: confirm with the human behind the client
 
@@ -23268,8 +23534,9 @@ reviewer.
 
 Approval requests carry `tenant_id`, and the admin tools are ordinary
 guarded tools, so on a `require_tenant=True` server, reviewers themselves
-must present tenant identity, and `approvals_list` shows which tenant each
-pending call belongs to.
+must present tenant identity. Each reviewer then lists and decides only their
+own tenant's calls (see `same_tenant_reviewers` above), so give every tenant
+its own approver keys.
 
 ## Limitations
 
@@ -24250,7 +24517,7 @@ On error, the end line has `"status": "error"` and `"error"` with the exception 
 {"event": "tool_call_end", "tool": "search_employees", "request_id": "b4c3d2e1f0a9", "duration_ms": 12.1, "status": "error", "error": "database unreachable"}
 ```
 
-`client_id` is present only for authenticated callers (put the middleware after `AuthMiddleware` to see it). The lines carry no timestamp of their own: configure your log handler's formatter to add one. The message is the JSON text, so emit it as-is (for example with `logging.Formatter("%(message)s")`) for a log aggregator. With `include_args=True` the start line also has `args`, the call's validated arguments after the framework's redaction (the same as the agent's trace redaction): the value of a credential key (`password`, `api_key`, `token`...) becomes `[REDACTED]`, and credentials and common PII in strings (API keys, JWTs, card numbers, email addresses) are replaced with placeholders. Pattern matching can't recognise every kind of personal data (names, addresses), so leave it off for tools that take such data.
+`client_id` is present only for authenticated callers (put the middleware after `AuthMiddleware` to see it). The lines carry no timestamp of their own: configure your log handler's formatter to add one. The message is the JSON text, so emit it as-is (for example with `logging.Formatter("%(message)s")`) for a log aggregator. With `include_args=True` the start line also has `args`, the call's validated arguments as JSON (a Pydantic model argument is a JSON object) after the framework's redaction (the same as the agent's trace redaction): the value of a credential key (`password`, `api_key`, `token`...) becomes `[REDACTED]`, and credentials and common PII in strings (API keys, JWTs, card numbers, email addresses) are replaced with placeholders. Pattern matching can't recognise every kind of personal data (names, addresses), so leave it off for tools that take such data. A call whose arguments fail validation logs the arguments as the caller sent them, redacted the same way and then cut as the [audit log](#auditmiddleware) cuts them: strings over 1,000 characters, lists and dicts over 100 items, nesting past 8 levels, and the strings past 8,000 characters in all are cut and marked.
 
 ```json
 {"event": "tool_call_start", "tool": "sign_in", "request_id": "c1d2e3f4a5b6", "args": {"user": "ada", "password": "[REDACTED]"}}
@@ -24439,7 +24706,7 @@ It exits `0` when the log is intact, `1` when it was tampered with (also on warn
 | `log_path` | `None` | File path for the JSONL audit log |
 | `signed` | `True` | Enable the HMAC chain |
 | `hmac_secret` | `PROMPTISE_AUDIT_SECRET` | Key for the HMAC chain. Required with `log_path` when `signed=True` |
-| `include_args` | `False` | Log the tool's arguments (may contain PII) |
+| `include_args` | `False` | Log the tool's arguments (may contain PII), as the tool validated them, in JSON: a Pydantic model argument, or one inside a list or dict, is a JSON object, a `datetime` an ISO string, a set a list. A call whose arguments fail validation (`error_code` `VALIDATION_ERROR`) is logged with the arguments as the caller sent them; strings over 1,000 characters, lists and dicts over 100 items, nesting past 8 levels, and the strings past 8,000 characters in all are cut and marked, since no schema bounded them |
 | `include_result` | `False` | Log tool results (first 1000 characters) |
 | `max_memory_entries` | `10000` | Entries kept in memory for `audit.entries` / `verify_chain()`; `None` keeps all. The file keeps every entry |
 
@@ -25815,19 +26082,31 @@ Annotations come from the HTTP method: `GET`/`HEAD` are read-only, `DELETE` is d
 
 For a curated, typed server (descriptions written for agents, selected operations, generated tests), use [MCPcast](mcpcast.md) (`promptise mcpcast ./openapi.yaml`) instead.
 
-`OpenAPIProvider(spec, *, base_url=None, prefix="", include=None, exclude=None, auth_header=None, tags=None)` and `provider.register(server) -> int` (the number of tools):
+`OpenAPIProvider(spec, *, base_url=None, prefix="", include=None, exclude=None, auth_header=None, tags=None, allow_private=False)` and `provider.register(server) -> int` (the number of tools):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `spec` | (required) | URL (fetched with `httpx`), file path (JSON, or YAML with `.yaml`/`.yml`), JSON string, or dict |
-| `base_url` | From spec | Override the API base URL (`servers[0].url`, or Swagger `schemes`/`host`/`basePath`) |
+| `base_url` | From spec | Override the API base URL (`servers[0].url`, or Swagger `schemes`/`host`/`basePath`). A relative `servers` URL such as `/v1` is resolved against the spec's URL; pass `base_url` when the spec is a file or dict |
 | `prefix` | `""` | Prepended to tool names as given (include your own `_`) |
 | `include` | All | Only these operation IDs |
 | `exclude` | None | Skip these operation IDs |
 | `auth_header` | None | `(header_name, value)` sent on every request |
 | `tags` | `[]` | Tags for all generated tools |
+| `allow_private` | `False` | Allow a spec URL or base URL on a loopback, private or link-local address. Turn it on only for an internal API you trust |
 
-Tool names are the `operationId` (or `<method>_<path>`) with `-` and `/` replaced by `_`. A spec URL or base URL that resolves to a private or loopback address is refused.
+Tool names are the `operationId` (or `<method>_<path>`) with `-` and `/` replaced by `_`.
+
+By default, a spec URL or base URL that resolves to a private or loopback address is refused, so a spec cannot point the tools at internal services. To bridge an internal API on purpose, pass `allow_private=True`:
+
+```python
+provider = OpenAPIProvider(
+    "http://10.0.4.12:8080/openapi.json",
+    allow_private=True,   # this API lives on the internal network
+)
+```
+
+`register()` raises a `ValueError` when the tools would have no absolute API address: the spec has no `servers` entry, or a relative one and no spec URL to resolve it against. Pass `base_url` in that case.
 
 ---
 
@@ -26678,6 +26957,10 @@ With `require_auth=True` and an `AuthMiddleware` installed, the server checks ev
 
 1. **Bearer token**: `Authorization: Bearer <jwt-token>`: verified with the configured auth provider
 2. **API key**: `x-api-key: <key>` (or the header given to `APIKeyAuth(header=...)`): verified with the API key provider
+
+The gate calls the provider's `averify_token()` when it has one (all built-in providers do), else its `verify_token()`, so an async key store or revocation hook runs on every request, and a revoked key or token gets `401` on its next request. A verifier that raises rejects the request.
+
+A provider with neither, such as a custom provider with only `authenticate()`, gets no gate: the server logs a warning at startup, any client can open a session and list the tools, and `AuthMiddleware` refuses each call with `AUTHENTICATION_ERROR` before the tool runs. Give the provider an `averify_token(credential) -> bool` to refuse a bad credential with `401` as the built-in providers do (see [Custom auth provider](auth-security.md#custom-auth-provider)).
 
 Unauthenticated requests receive a `401` JSON response:
 
@@ -29123,7 +29406,7 @@ the auth-mode ones).
 !!! tip "Learn the concept"
 
     - [OpenAPI to MCP: Turn Any REST API into an MCP Server](https://www.promptise.com/guides/view/openapi-to-mcp-server-rest-api): The ideas behind turning a REST API into a safe MCP server.
-    - [Too Many MCP Tools? LLM Tool Selection, Measured](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection): Why fewer, better tools beat one tool per endpoint.
+    - [Too Many MCP Tools? How to Fix LLM Tool Selection in Python](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection): Why fewer, better tools beat one tool per endpoint.
 
 ================================================================================
 Page: MCPcast Wizard: API to MCP Server Setup
@@ -35707,6 +35990,26 @@ A model object is code only, like `extra_tools`: `model_dump()` and `RuntimeConf
 
 ---
 
+### The agent's reasoning pattern
+
+A process runs the default ReAct loop unless its config names another [reasoning pattern](../core/agents/reasoning-patterns.md). `ProcessConfig(agent_pattern=...)` is passed to `build_agent(agent_pattern=...)` each time the process builds its agent, so a run started by a cron schedule or a webhook uses the pattern too:
+
+```python
+from promptise.runtime import AgentProcess, ProcessConfig, TriggerConfig
+
+process = AgentProcess(
+    "nightly-planner",
+    ProcessConfig(
+        model="openai:gpt-5-mini",
+        instructions="Plan tomorrow's restocking from today's orders.",
+        agent_pattern="peoatr",
+        triggers=[TriggerConfig(type="cron", cron_expression="0 22 * * *")],
+    ),
+)
+```
+
+It takes a pattern name from `promptise.agent.AGENT_PATTERNS` or, in code, a `PromptGraph` you built. A graph is code only, like a model object: `model_dump()` and `RuntimeConfig.to_dict()` leave it out. An unknown name raises a `ValidationError` when the config is created, not when the first trigger fires. A manifest sets it with the top-level `agent_pattern:` key. `agent_pattern="code-action"` needs Docker, as in `build_agent()`.
+
 ## Lifecycle methods
 
 | Method | Transition | What it does |
@@ -36289,7 +36592,7 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | `PATCH` | `/processes/{name}/budget` | Change `BudgetConfig` fields | Next budget check (`"next_budget_check"`) | `200` |
 | `PATCH` | `/processes/{name}/health` | Change `HealthConfig` fields | Next check (`"immediate"`) | `200` |
 | `PATCH` | `/processes/{name}/mission` | Change `MissionConfig` fields | Next evaluation and prompt (`"immediate"`) | `200` |
-| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs; `hmac_secret`, credential-like `custom_config` values and URL user info masked |: | `200` |
+| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs; `hmac_secret`, credential-like `custom_config` values and URL user info masked | Read only | `200` |
 | `POST` | `/processes/{name}/triggers` | Add a trigger (body: a `TriggerConfig`) | At once on an active process, else at the next start | `201` |
 | `DELETE` | `/processes/{name}/triggers/{trigger_id}` | Stop and remove a trigger | At once on an active process, else at the next start | `200` |
 
@@ -36453,7 +36756,7 @@ curl -X DELETE http://localhost:9100/api/v1/processes/monitor/triggers/cron-6d90
 |---|---|---|
 | Add | Created and started at once: `live: true`, `effective_from: "immediate"` | Added to the config: `live: false`, `effective_from: "next_start"` |
 | Remove a config trigger | Stopped at once and removed from the config: `live: true`, `"immediate"` | Removed from the config: `live: true`, `"next_start"` |
-| Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` |: |
+| Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` | `404 TRIGGER_NOT_FOUND`: stopping a process drops its agent-added triggers |
 
 Adding a trigger identical to one already configured gets `409 TRIGGER_EXISTS`; an invalid config or one that can't start gets `422 INVALID_CONFIG`; a `${VAR}` reference gets `403 ENV_REFERENCES_NOT_ALLOWED` and a `watch_path` outside `data_dir` `403 PATH_NOT_ALLOWED`; an unknown ID gets `404 TRIGGER_NOT_FOUND`. In the listing, `hmac_secret` is masked, and so are the values of `custom_config` keys that look like credentials (names containing `secret`, `token`, `password`, `api_key`, `auth`, `credential`, `signature` or `cookie`) and the user info of any URL value (`postgres://app:pw@db/x` is listed as `postgres://**********@db/x`). The old position-based IDs (`static_0`, `static_1`, ...) are still accepted on `DELETE`; the response then carries a `warning` naming the stable ID to use instead.
 
@@ -36574,12 +36877,24 @@ When the inbox holds `max_messages` messages, a new message first replaces an an
 
 ### Guardrail scanning
 
-With `scan_with_guardrails: true` (the default), each message is scanned when it arrives, in overlapping 500-character windows, and a flagged message is refused (`422 MESSAGE_REJECTED`). The scanner is, in order:
+With `scan_with_guardrails: true` (the default), each message is scanned when it arrives, and a flagged message is refused (`422 MESSAGE_REJECTED`). The whole message is scanned at once, so pattern detectors (credentials, PII) see every match, however long. A `PromptiseSecurityScanner` splits the text into windows for its models itself. Any other scanner also gets the message in overlapping 500-character windows, for models that read only a limited length. The scanner is, in order:
 
 1. `ProcessConfig.guardrails`, when it can scan text (a `PromptiseSecurityScanner` or any object with `scan_text()` or `check_input()`).
 2. The trigger payload scanner, when `trigger_delivery.scan_payloads` is on. It is loaded when the process starts; messages that arrived before (a created process already takes messages) are scanned then, and flagged ones are removed (an `/ask` waiting on one gets `422 MESSAGE_REJECTED`).
 
 With neither, messages are **not scanned**: the process logs a one-time warning and accepts them. Set `guardrails` (for example `PromptiseSecurityScanner(detectors=[InjectionDetector()])`) or `trigger_delivery.scan_payloads=True` to scan them, or `scan_with_guardrails: false` to accept messages unscanned without the warning. Only give inbox access to people you trust with the agent's instructions: a message lands in the agent's prompt.
+
+**Credentials and personal data.** The inbox applies the scanner's input policy, the same one `check_input()` applies to an agent's input. This covers messages scanned on arrival and messages scanned at start. Credentials are only found when the scanner has a credential detector. The default payload scanner checks for prompt injection only.
+
+| Scanner | A message with an API key in it |
+|---|---|
+| `PromptiseSecurityScanner(detectors=[CredentialDetector()])` | Accepted as sent. On input a credential is a warning, so the process logs one warning naming the finding categories and the message ID, never the key. |
+| The same with `redact_input=True` | Accepted with the key masked. The inbox stores the scanner's redacted text, so the agent never sees the value. PII the scanner redacts is masked the same way. |
+| `redact_input=True` and `CredentialDetector(action=Action.BLOCK)` | Refused with `422 MESSAGE_REJECTED`. The reason names the credential category. |
+
+Without `redact_input=True`, `CredentialDetector(action=Action.BLOCK)` is still a warning on input, so the message is accepted as in the first row.
+
+To hand an agent a secret it needs, use the process's [secrets](governance/secrets.md) instead of sending it in a message.
 
 ### From Python
 
@@ -37609,21 +37924,21 @@ Any other transition raises `StateError`. A transition to the current state is i
 
 | Transition | Caused by | Event |
 |---|---|---|
-| `CREATED → STARTING` | `start()` |: |
+| `CREATED → STARTING` | `start()` | none |
 | `CREATED → STOPPED` | `stop()` before `start()` | none |
 | `STARTING → RUNNING` | Startup complete | `process.started` |
 | `STARTING → FAILED` | Startup raised (bad MCP server, missing secret, ...). `start()` re-raises the error; your own `start()` is not retried | `process.failed` |
-| `STARTING → STOPPING` | Allowed by the map. `stop()` called during `start()` waits for `start()` to finish first |: |
+| `STARTING → STOPPING` | Allowed by the map. `stop()` called during `start()` waits for `start()` to finish first | none |
 | `RUNNING → SUSPENDED` | `suspend()`, `idle_timeout`, budget, health, rewind | `process.suspended` |
-| `RUNNING → STOPPING` | `stop()`, `max_lifetime`, budget `on_exceeded="stop"`, health `on_anomaly="stop"`, mission completion |: |
+| `RUNNING → STOPPING` | `stop()`, `max_lifetime`, budget `on_exceeded="stop"`, health `on_anomaly="stop"`, mission completion | none |
 | `RUNNING → FAILED` | `max_consecutive_failures` reached | `process.failed` |
 | `SUSPENDED → RUNNING` | `resume()`, or a trigger event for an idle-suspended process | `process.resumed` |
-| `SUSPENDED → STOPPING` | `stop()` |: |
+| `SUSPENDED → STOPPING` | `stop()` | none |
 | `SUSPENDED → FAILED` | A run that was in flight when the process was suspended fails and reaches `max_consecutive_failures` | `process.failed` |
 | `STOPPING → STOPPED` | Teardown complete | `process.stopped` (not during a `max_lifetime` recycle) |
-| `STOPPED → STARTING` | `start()`, `AgentRuntime.restart_process()`, a `max_lifetime` recycle |: |
+| `STOPPED → STARTING` | `start()`, `AgentRuntime.restart_process()`, a `max_lifetime` recycle | none (a `max_lifetime` recycle emits `process.restarted` before its teardown) |
 | `FAILED → STARTING` | `start()`, `restart_process()`, `start_all()`, an automatic restart | `process.restarted` (automatic restart only, before the attempt) |
-| `FAILED → STOPPING` | `stop()` |: |
+| `FAILED → STOPPING` | `stop()` | none |
 
 `STOPPING → FAILED` and the `AWAITING` transitions are allowed by the map but not used by `AgentProcess`.
 
@@ -37637,8 +37952,8 @@ With an `event_notifier`, the process emits these events. Every event's `data` h
 
 | Event | Severity | When | Extra `data` keys |
 |---|---|---|---|
-| `process.started` | `info` | Entered `RUNNING` (every start, automatic restarts included) |: |
-| `process.stopped` | `info` | A stop finished (not for `CREATED → STOPPED`) |: |
+| `process.started` | `info` | Entered `RUNNING` (every start, automatic restarts included) | none |
+| `process.stopped` | `info` | A stop finished (not for `CREATED → STOPPED`) | none |
 | `process.failed` | `critical` | Entered `FAILED` | `reason`, `error` (the real error, `"Type: message"`, at most 500 characters) |
 | `process.restarted` | `warning` | An automatic restart attempt begins (after its backoff), or a `max_lifetime` recycle | `reason`, `attempt` (`None` for a recycle), `max_restarts` |
 | `process.restart_exhausted` | `critical` | A failure with `max_restarts` already used up; the process stays `FAILED` | `reason`, `restarts`, `max_restarts`, `error` |
@@ -38319,7 +38634,7 @@ restored = ConversationBuffer.from_dict(data)
 
 | Method | Sync/Async | Description |
 |---|---|---|
-| `ConversationBuffer(max_messages=100, enabled=True)` |: | `max_messages=0` is unlimited; `enabled=False` retains nothing |
+| `ConversationBuffer(max_messages=100, enabled=True)` | Constructor | `max_messages=0` is unlimited; `enabled=False` retains nothing |
 | `append(message)` | Sync | Add one message dict |
 | `extend(messages)` | Sync | Add several message dicts |
 | `get_messages()` | Sync | All messages as a list copy, oldest first |
@@ -38468,6 +38783,7 @@ Configuration for one agent process. Unknown keys are rejected.
 |---|---|---|---|
 | `model` | `str` or a model | `"openai:gpt-5-mini"` | LLM model ID. In code also a model object as `build_agent(model=...)` takes it (a LangChain chat model, a `promptise.Model`, a `FallbackChain`); a model object is not serialised. See [The agent's model](processes.md#the-agents-model). |
 | `instructions` | `str \| None` | `None` | System prompt |
+| `agent_pattern` | `str`, a `PromptGraph` or `None` | `None` | The [reasoning pattern](../core/agents/reasoning-patterns.md), passed to `build_agent(agent_pattern=...)`: a name from `promptise.agent.AGENT_PATTERNS` (`"react"`, `"peoatr"`, `"research"`, ...) or, in code, a `PromptGraph` (not serialised). `None` runs ReAct. An unknown name raises a `ValidationError`. See [The agent's reasoning pattern](processes.md#the-agents-reasoning-pattern). |
 | `execution_mode` | `ExecutionMode` | `ExecutionMode.STRICT` | `"strict"` or `"open"` (self-modifying, see [Meta-Tools](meta-tools.md)) |
 | `open_mode` | `OpenModeConfig` | `OpenModeConfig()` | Open-mode limits; ignored in strict mode |
 | `servers` | `dict[str, Any]` | `{}` | MCP servers: a dict per server (`url` for HTTP, `command` for stdio) or a server spec object |
@@ -38851,6 +39167,7 @@ promptise runtime start watcher.agent
 | `name` | `str` | required | The process name |
 | `model` | `str` | `"openai:gpt-5-mini"` | `ProcessConfig.model` |
 | `instructions` | `str` | none | `ProcessConfig.instructions` |
+| `agent_pattern` | `str` | none (ReAct) | `ProcessConfig.agent_pattern`: a [reasoning pattern](../core/agents/reasoning-patterns.md) name such as `peoatr` or `research`; an unknown name fails validation |
 | `identity` | mapping | none | `ProcessConfig.identity` (see [identity](#identity)) |
 | `servers` | mapping | `{}` | `ProcessConfig.servers` |
 | `triggers` | list | `[]` | `ProcessConfig.triggers` (each a `TriggerConfig`) |
@@ -39106,7 +39423,7 @@ config:
     dead_letter_size: 200
 ```
 
-A key that has its own section (`model`, `instructions`, `identity`, `execution_mode`, `open_mode`, `servers`, `triggers`, `journal`, `context`, `secrets`, `budget`, `health`, `mission`, `hooks`) is refused in `config:` when that section is also set; set each option in one place.
+A key that has its own section (`model`, `instructions`, `agent_pattern`, `identity`, `execution_mode`, `open_mode`, `servers`, `triggers`, `journal`, `context`, `secrets`, `budget`, `health`, `mission`, `hooks`) is refused in `config:` when that section is also set; set each option in one place.
 
 ---
 
@@ -40239,6 +40556,38 @@ Budget limit max_tool_calls_per_day reached (limit 5); tool call 'send' was not 
 LLM turns are counted but not blocked: the turn that exceeds `max_llm_turns_per_run` still runs, and every tool call after it is refused.
 
 A refused call never runs, so the [journal](../journal/index.md) has no `tool_call` entry for it. It gets a `tool_denied` entry instead (with the call's `args` at journal level `"full"`), and the `permission_denied` [hook](../hooks.md) fires with `kind="budget"` and the call's `arguments`. The violation the process acts on is journaled as `budget_violation`.
+
+When the process's agent is observed (`ProcessConfig(observe=...)`, or `promptise run --devtools`), the refused call is on its trace as well: a `tool.call` and a `tool.result` with `status="denied"`, `denied_by="budget"`, the `reason` (`"budget limit max_irreversible_per_run reached (4 > 3)"`), `limit_name`, `limit_value` and `current_value`. Every transporter gets them, `collector.get_stats()["tool_denied_count"]` counts them (not as errors), and the `--devtools` trace prints `⊘ wire_money refused (budget) ...` with a `refused` column in the summary.
+
+```python
+from promptise import tool
+from promptise.observability_config import ObservabilityConfig, TransporterType
+from promptise.runtime import BudgetConfig, ProcessConfig
+from promptise.runtime.config import ToolCostAnnotation
+
+
+@tool
+def wire_money(amount: int) -> str:
+    """Wire money to the supplier."""
+    return "sent"
+
+
+refused = []
+
+config = ProcessConfig(
+    model="openai:gpt-5-mini",
+    extra_tools=[wire_money],
+    budget=BudgetConfig(
+        enabled=True,
+        max_irreversible_per_run=3,
+        tool_costs={"wire_money": ToolCostAnnotation(irreversible=True)},
+    ),
+    observe=ObservabilityConfig(
+        transporters=[TransporterType.CALLBACK],
+        on_event=lambda e: refused.append(e) if e.metadata.get("status") == "denied" else None,
+    ),
+)
+```
 
 After the invocation finishes, the first violation of the run triggers the action configured in `on_exceeded` (below). `max_runs_per_day` is checked when an invocation starts; a run over that limit does not start, and `on_exceeded` is applied at once. Its event goes to the [dead letters](../processes.md#dead-letters) with reason `"budget: max_runs_per_day"` (the `task_completed` hook reports outcome `"refused"`), so `redeliver_dead_letters()` can run it after the daily reset.
 
@@ -41512,7 +41861,7 @@ config = ProcessConfig(
 )
 ```
 
-With `scan_payloads=True`, the payload is checked by a prompt-injection classifier before the agent runs. The scan reads exactly the payload text the prompt shows (the rendered JSON, keys included, cut at `max_payload_chars`), end to end, in 500-character windows that overlap by 50 characters, so nothing reaches the prompt unscanned. A flagged event is dead-lettered with reason `flagged by payload scan` and the agent never sees it. Flagged events don't count towards `max_consecutive_failures`.
+With `scan_payloads=True`, the payload is checked by a prompt-injection classifier before the agent runs. The scan reads exactly the payload text the prompt shows (the rendered JSON, keys included, cut at `max_payload_chars`), whole, so nothing reaches the prompt unscanned and pattern detectors (credentials, PII) see every match. A `PromptiseSecurityScanner` splits the text into windows for its models itself; any other scanner also gets the text in 500-character windows that overlap by 50 characters. A flagged event is dead-lettered with reason `flagged by payload scan` and the agent never sees it. Flagged events don't count towards `max_consecutive_failures`.
 
 The scanner is `ProcessConfig.guardrails` when that is a `PromptiseSecurityScanner` (its full rule set then applies to payloads), otherwise an injection-only `PromptiseSecurityScanner(detectors=[InjectionDetector()])`. The model needs `transformers` and `torch` and loads when the process starts. If it can't load, `start()` fails instead of silently skipping the scan.
 
@@ -43625,13 +43974,13 @@ promptise runtime rewind PROCESS [ENTRY_ID] [--mode MODE] [--plan] [--yes]
 
 | Option | Default | Description |
 |---|---|---|
-| `ENTRY_ID` |: | The entry to go back to. Omit it to list the newest entries with their IDs |
+| `ENTRY_ID` | none | The entry to go back to. Omit it to list the newest entries with their IDs |
 | `--mode`, `-m` | `both` | `both`, `conversation_only`, `code_only` or `summarize` |
 | `--plan` | off | Show the plan and stop |
 | `--yes`, `-y` | off | Apply without asking |
-| `--runtime`, `-r` |: | The runtime the process runs in (needed when several are running) |
+| `--runtime`, `-r` | none | The runtime the process runs in (needed when several are running) |
 | `--lines`, `-n` | `20` | Entries to list when no entry ID is given (1-500) |
-| `--url`, `--token` |: | Talk to an Orchestration API instead of a local runtime |
+| `--url`, `--token` | none | Talk to an Orchestration API instead of a local runtime |
 
 The command goes through the runtime's control API, so the process must be in a running runtime. It prints the plan, asks `Rewind <process>? [y/N]`, and records the rewind with actor `"cli"`. Answering no (or no answer) exits with code 1 and changes nothing.
 
@@ -45051,7 +45400,7 @@ promptise runtime start agents/ --dashboard                  # live terminal das
 | Argument / option | Short | Default | Description |
 |---|---|---|---|
 | `MANIFEST` | | required | Path to a `.agent` file or a directory of `.agent` files |
-| `--name` | `-n` |: | Override the process name (single manifest file only) |
+| `--name` | `-n` | none | Override the process name (single manifest file only) |
 | `--runtime-name` | `-r` | process name (file) or directory name | Name of this runtime for `status`, `stop`, `restart`, `logs` |
 | `--detach/--no-detach` | `-d` | off | Run in the background; print the runtime name, PID and log file |
 | `--dashboard/--no-dashboard` | | off | Live monitoring dashboard (foreground only) |
@@ -45059,8 +45408,8 @@ promptise runtime start agents/ --dashboard                  # live terminal das
 | `--api-port` | | `0` | Port of the control API (`0`: a free port) |
 | `--allow-command-deploys` | | off | Let the control API deploy processes with stdio MCP servers, command hooks or open-mode tool creation |
 | `--allow-env-references` | | off | Let control-API deploys use `${VAR}` references to any environment variable of this machine |
-| `--allow-env-var NAME` | |: | Let control-API deploys reference this one variable as `${NAME}`; repeatable |
-| `--import MODULE` | `-i` |: | Import this Python module before loading the manifests, for example one that registers custom trigger types with `register_trigger_type()`; repeatable. The current directory is importable |
+| `--allow-env-var NAME` | | none | Let control-API deploys reference this one variable as `${NAME}`; repeatable |
+| `--import MODULE` | `-i` | none | Import this Python module before loading the manifests, for example one that registers custom trigger types with `register_trigger_type()`; repeatable. The current directory is importable |
 
 In the foreground, `start` loads the manifests, starts the control API, writes the state file, starts every process and prints a status table:
 
@@ -45148,8 +45497,8 @@ promptise runtime stop prod --timeout 60 --force
 
 | Argument / option | Short | Default | Description |
 |---|---|---|---|
-| `NAME` | |: | Runtime to stop, or a process name in a running runtime; may be omitted when only one runtime runs |
-| `--process` | `-p` |: | Stop only this process (the runtime keeps running) |
+| `NAME` | | none | Runtime to stop, or a process name in a running runtime; may be omitted when only one runtime runs |
+| `--process` | `-p` | none | Stop only this process (the runtime keeps running) |
 | `--force/--no-force` | | off | Kill the runtime if it hasn't stopped gracefully |
 | `--drain-timeout` | | each process's `drain_timeout` | Seconds runs in flight may take to finish before they are cancelled (0 to 3600; `0` cancels them at once) |
 | `--timeout` | | `30.0` | Seconds to wait for a graceful shutdown; with `--drain-timeout` at least the drain plus 10 |
@@ -45203,7 +45552,7 @@ promptise runtime logs data-watcher --journal-path /var/lib/agents/journal
 | `--lines` | `-n` | `20` | Number of most recent entries to show |
 | `--follow/--no-follow` | `-f` | off | Keep printing new entries |
 | `--journal-path` | | see below | Journal directory |
-| `--url`, `--token` | |: | Read the journal through an Orchestration API |
+| `--url`, `--token` | | none | Read the journal through an Orchestration API |
 
 Where the entries come from:
 
@@ -45237,13 +45586,13 @@ promptise runtime rewind notes 7c7bee77-... --mode conversation_only --yes
 | Argument / option | Short | Default | Description |
 |---|---|---|---|
 | `PROCESS` | | required | Process to rewind |
-| `ENTRY_ID` | |: | Journal entry to go back to; omit it to list recent entries |
+| `ENTRY_ID` | | none | Journal entry to go back to; omit it to list recent entries |
 | `--mode` | `-m` | `both` | `both`, `conversation_only`, `code_only` (context state) or `summarize` (rewind nothing, add a summary to the conversation) |
 | `--plan` | | off | Only show what the rewind would change |
 | `--yes` | `-y` | off | Apply without asking for confirmation |
-| `--runtime` | `-r` |: | Runtime the process runs in (needed when several runtimes run) |
+| `--runtime` | `-r` | none | Runtime the process runs in (needed when several runtimes run) |
 | `--lines` | `-n` | `20` | Entries to list when no entry ID is given (1-500) |
-| `--url`, `--token` | |: | Talk to an Orchestration API instead of a local runtime |
+| `--url`, `--token` | | none | Talk to an Orchestration API instead of a local runtime |
 
 The command shows the plan first (target entry, mode, how many entries are affected), then asks `Rewind <process>? [y/N]`. A running process is suspended for the rewind and resumed afterwards. The rewind is journaled with actor `cli`. It goes through the control API, so the process must run in a runtime and have a journal.
 
@@ -46038,7 +46387,10 @@ are handled for you:
 - **Revocation**: disable the agent's identity **in the IdP**. Its
   short-lived credentials stop validating at every resource as they
   expire, with no change to any server's configuration. This is the whole
-  point of keeping the IdP as the system of record.
+  point of keeping the IdP as the system of record. To cut off a token
+  before its `exp`, add its `jti` or the agent's subject to the server's
+  deny list (`auth.revoke(...)`, or an `is_revoked` hook backed by a shared
+  store); see [Revoking tokens](../mcp/server/auth-security.md#revoking-tokens).
 
 ---
 
@@ -47098,7 +47450,7 @@ agent = await build_agent(
 **Dual-mode operation:**
 
 - **Standalone**: `await my_prompt("input")` calls the LLM directly with the full pipeline: template, context, perspective, strategy, constraints, guards, LLM call, parse, output guards.
-- **Agent-integrated**: `build_agent(instructions=my_prompt)` uses `render_async()` to build dynamic system prompts on every agent invocation. The prompt's [guards](guards.md) check each user message (input guards) and each reply (output guards), and its [inspector](inspector.md) records each render.
+- **Agent-integrated**: `build_agent(instructions=my_prompt)` calls `render_async()` on every agent invocation (`ainvoke()`, `chat()`, `astream()`, `astream_with_tools()`), with the context providers. The model gets that render once per call, as the start of its one system message; the agent keeps no second, build-time copy. If the render fails or comes back empty, the agent sends the build-time render (`my_prompt.render()`) instead, so the model is never left without instructions. The prompt's [guards](guards.md) check each user message (input guards) and each reply (output guards), and its [inspector](inspector.md) records each render.
 
 ### Runtime Composition
 
@@ -47796,7 +48148,7 @@ URL: https://docs.promptise.com/prompting/flows/
 
 # Layer 2: ConversationFlow
 
-Build conversation agents where the system prompt evolves across phases: different blocks activate as the conversation progresses.
+`ConversationFlow` (from `promptise.prompts.flows`) builds conversation agents where the system prompt evolves across phases: different blocks activate as the conversation progresses.
 
 ## Quick Example
 
@@ -47854,7 +48206,7 @@ stateDiagram-v2
     farewell --> [*]
 ```
 
-## Defining a Flow
+## Defining a ConversationFlow
 
 ### Subclass `ConversationFlow`
 
@@ -48187,7 +48539,7 @@ async def main():
 asyncio.run(main())
 ```
 
-## API Reference
+## ConversationFlow API reference
 
 ### ConversationFlow
 
@@ -50025,6 +50377,9 @@ This reads `ctx.world["project"]` and formats all its fields into a markdown sec
 !!! warning "Provider ordering"
     Providers execute in the order they are passed to `@context()`, and their sections appear in that order after the template text. In a [`PromptSuite`](suite-registry.md), suite-level providers run first; a suite provider is skipped when the prompt already has a provider of the same class.
 
+!!! note "As agent instructions, providers run on every call"
+    With `build_agent(instructions=my_prompt)`, the agent renders the prompt for each request, so each provider runs once per call and sees that call's user message in `ctx.rendered_text`. The model gets the rendered prompt once, as the start of its system message.
+
 !!! warning "Providers that need an agent"
     `memory_context()` returns nothing in a standalone call because `ctx.agent` is `None`. It works when the prompt is passed as `build_agent(instructions=...)` and the agent has a memory provider. `task_context()` and `blackboard_context()` need `ctx.task` / `ctx.blackboard`, which only a `PromptContext` you build yourself and pass to `render_async(ctx)` sets.
 
@@ -50904,7 +51259,7 @@ from promptise.prompts.context import PromptContext
 rendered = await suite.render_async(PromptContext())
 ```
 
-Both join each prompt's rendered text under a `## <prompt name>` heading. Templates are rendered without variables, so `{data}` placeholders stay as they are. A suite can be an agent's instructions: `build_agent(instructions=DataAnalysisSuite())` injects `render_async()` on each turn and runs the guards of all its prompts.
+Both join each prompt's rendered text under a `## <prompt name>` heading. Templates are rendered without variables, so `{data}` placeholders stay as they are. A suite can be an agent's instructions: `build_agent(instructions=DataAnalysisSuite())` sends `render_async()` on each turn, once, as the start of the model's system message, and runs the guards of all its prompts.
 
 ### Suite Methods
 

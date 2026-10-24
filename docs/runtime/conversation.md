@@ -168,7 +168,7 @@ restored = ConversationBuffer.from_dict(data)
 
 | Method | Sync/Async | Description |
 |---|---|---|
-| `ConversationBuffer(max_messages=100, enabled=True)` |: | `max_messages=0` is unlimited; `enabled=False` retains nothing |
+| `ConversationBuffer(max_messages=100, enabled=True)` | Constructor | `max_messages=0` is unlimited; `enabled=False` retains nothing |
 | `append(message)` | Sync | Add one message dict |
 | `extend(messages)` | Sync | Add several message dicts |
 | `get_messages()` | Sync | All messages as a list copy, oldest first |

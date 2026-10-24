@@ -561,8 +561,9 @@ on and off. See [Guardrails](../guardrails.md).
 
 #### `max_invocation_time`
 
-Optional top-level number. Seconds one invocation may take; `0` (the default) means no
-limit. A longer run raises `TimeoutError`.
+Optional top-level number. Seconds one invocation may take (`ainvoke()`, `chat()`,
+`invoke()`, `astream()` and `astream_with_tools()`); `0` (the default) means no limit. A
+longer run raises `TimeoutError`.
 
 ## Environment Variable Resolution
 
@@ -581,7 +582,7 @@ servers:
     bearer_token: "${API_TOKEN}"
 ```
 
-Before resolving, the loader loads the nearest `.env` file -- the same file, by the same rule, as the `promptise` CLI and model setup: the working directory or a parent up to the project root (the folder with `pyproject.toml` or `.git`), never overriding a variable that is already set. `PROMPTISE_NO_DOTENV=1` turns it off. So `python run_agent.py` and `promptise agent` see the same variables.
+Before resolving, the loader loads the nearest `.env` file -- the same file, by the same rule, as the `promptise` CLI and model setup: the working directory or a parent up to the project root (the nearest folder with `promptise.toml`, `pyproject.toml` or `.git`, or the working directory itself when there is none), never overriding a variable that is already set. `PROMPTISE_NO_DOTENV=1` turns it off. So `python run_agent.py` and `promptise agent` see the same variables.
 
 Call `loader.validate_env_vars()` to check which variables are missing before resolving:
 

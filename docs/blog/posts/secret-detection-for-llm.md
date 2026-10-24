@@ -25,9 +25,9 @@ Traditional secret scanning lives in CI. Tools like gitleaks and trufflehog scan
 
 None of these paths pass through git, so CI scanning never sees them. Credential detection AI systems have to move the check to runtime, sitting directly in the request/response path of the agent. That is a different job from repository scanning, and it needs a detector wired into agent I/O rather than a pre-commit hook.
 
-## Gitleaks for AI: 96 credential patterns that run locally
+## Gitleaks for AI: 97 credential patterns that run locally
 
-Promptise Foundry ships `CredentialDetector`, one of six composable detection heads in the [security guardrails](../../core/guardrails.md) scanner. It brings the accuracy of repo-scanning tooling to runtime traffic by reusing the same battle-tested rules: 96 regex patterns derived from [gitleaks](https://github.com/gitleaks/gitleaks) and [trufflehog](https://github.com/trufflesecurity/trufflehog), covering 62 credential categories across 60+ services.
+Promptise Foundry ships `CredentialDetector`, one of six composable detection heads in the [security guardrails](../../core/guardrails.md) scanner. It brings the accuracy of repo-scanning tooling to runtime traffic by reusing the same battle-tested rules: 97 regex patterns derived from [gitleaks](https://github.com/gitleaks/gitleaks) and [trufflehog](https://github.com/trufflesecurity/trufflehog), covering 62 credential categories across 60+ services.
 
 That includes the credentials most likely to show up in an agent conversation:
 
@@ -104,7 +104,7 @@ Combining the two heads is the whole point of composable guardrails: `Credential
 
 ## Tune categories, exclusions, and standalone scans
 
-Running all 96 patterns on every message is cheap, but you can narrow the surface when you know your threat model. Pass a set of `CredentialCategory` values to scan only what matters, or `exclude` specific pattern names that produce noise in your domain:
+Running all 97 patterns on every message is cheap, but you can narrow the surface when you know your threat model. Pass a set of `CredentialCategory` values to scan only what matters, or `exclude` specific pattern names that produce noise in your domain:
 
 ```python
 from promptise import PromptiseSecurityScanner, CredentialDetector
@@ -138,7 +138,7 @@ Use both. CI scanning stops secrets from being committed; runtime detection stop
 
 ### Does scanning for secrets send my prompts to a third party?
 
-No. `CredentialDetector` is 96 local regex patterns with a 0 MB footprint, executed in-process. Nothing about a scan leaves your infrastructure — which is the entire point, since a hosted "secret checker" would have to receive the secret to inspect it. This makes it safe for air-gapped and no-egress environments.
+No. `CredentialDetector` is 97 local regex patterns with a 0 MB footprint, executed in-process. Nothing about a scan leaves your infrastructure — which is the entire point, since a hosted "secret checker" would have to receive the secret to inspect it. This makes it safe for air-gapped and no-egress environments.
 
 ### What happens when a credential is detected?
 

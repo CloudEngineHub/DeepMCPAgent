@@ -214,6 +214,12 @@ same tool again and again, hoping for the rest. With the marker it asks for
 less instead. The cap applies even with `enabled=False`. `ToolNode` cuts at
 its own `max_result_chars` (4,000) with the same marker.
 
+Set a cap when tools return whole files or logs. Compaction keeps the newest
+results in full, and a model that reads the same large file again adds another
+full copy each time. On such a run compaction can cost more input tokens than
+sending the whole transcript. A cap, or tools that return a slice (a line
+range, a filter, a page), keeps each read small.
+
 ## Two ready-made patterns
 
 You rarely need to wire a node by hand, two built-in `agent_pattern` values
@@ -343,4 +349,4 @@ the other's raw messages.
 
 !!! tip "Learn the concept"
 
-    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents) -- Keep what matters in long runs and trim the rest, with real token counts.
+    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents) -- Keep what matters in long runs and trim the rest.

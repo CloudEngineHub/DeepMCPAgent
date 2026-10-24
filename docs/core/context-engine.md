@@ -277,4 +277,4 @@ engine.set_content("company_policy", "Never discuss competitor pricing.")
 
 !!! tip "Learn the concept"
 
-    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents): Context window management for long agent runs, with real token counts.
+    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents): How to manage the context window in long agent runs.

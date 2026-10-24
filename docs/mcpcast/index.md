@@ -689,4 +689,4 @@ the auth-mode ones).
 !!! tip "Learn the concept"
 
     - [OpenAPI to MCP: Turn Any REST API into an MCP Server](https://www.promptise.com/guides/view/openapi-to-mcp-server-rest-api): The ideas behind turning a REST API into a safe MCP server.
-    - [Too Many MCP Tools? LLM Tool Selection, Measured](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection): Why fewer, better tools beat one tool per endpoint.
+    - [Too Many MCP Tools? How to Fix LLM Tool Selection in Python](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection): Why fewer, better tools beat one tool per endpoint.

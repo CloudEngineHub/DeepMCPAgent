@@ -302,4 +302,4 @@ Yes. Tool optimization modifies the tool definitions before they reach LangChain
 
 !!! tip "Learn the concept"
 
-    - [Too Many MCP Tools? LLM Tool Selection, Measured](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection): What 122 tools do to accuracy, tokens and latency, and how selection fixes it.
+    - [Too Many MCP Tools? How to Fix LLM Tool Selection in Python](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection): Why too many tools lead a model to the wrong one, how semantic tool selection works, and how to check and tune it.

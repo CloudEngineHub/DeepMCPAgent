@@ -65,7 +65,7 @@ promptise runtime start agents/ --dashboard                  # live terminal das
 | Argument / option | Short | Default | Description |
 |---|---|---|---|
 | `MANIFEST` | | required | Path to a `.agent` file or a directory of `.agent` files |
-| `--name` | `-n` |: | Override the process name (single manifest file only) |
+| `--name` | `-n` | none | Override the process name (single manifest file only) |
 | `--runtime-name` | `-r` | process name (file) or directory name | Name of this runtime for `status`, `stop`, `restart`, `logs` |
 | `--detach/--no-detach` | `-d` | off | Run in the background; print the runtime name, PID and log file |
 | `--dashboard/--no-dashboard` | | off | Live monitoring dashboard (foreground only) |
@@ -73,8 +73,8 @@ promptise runtime start agents/ --dashboard                  # live terminal das
 | `--api-port` | | `0` | Port of the control API (`0`: a free port) |
 | `--allow-command-deploys` | | off | Let the control API deploy processes with stdio MCP servers, command hooks or open-mode tool creation |
 | `--allow-env-references` | | off | Let control-API deploys use `${VAR}` references to any environment variable of this machine |
-| `--allow-env-var NAME` | |: | Let control-API deploys reference this one variable as `${NAME}`; repeatable |
-| `--import MODULE` | `-i` |: | Import this Python module before loading the manifests, for example one that registers custom trigger types with `register_trigger_type()`; repeatable. The current directory is importable |
+| `--allow-env-var NAME` | | none | Let control-API deploys reference this one variable as `${NAME}`; repeatable |
+| `--import MODULE` | `-i` | none | Import this Python module before loading the manifests, for example one that registers custom trigger types with `register_trigger_type()`; repeatable. The current directory is importable |
 
 In the foreground, `start` loads the manifests, starts the control API, writes the state file, starts every process and prints a status table:
 
@@ -162,8 +162,8 @@ promptise runtime stop prod --timeout 60 --force
 
 | Argument / option | Short | Default | Description |
 |---|---|---|---|
-| `NAME` | |: | Runtime to stop, or a process name in a running runtime; may be omitted when only one runtime runs |
-| `--process` | `-p` |: | Stop only this process (the runtime keeps running) |
+| `NAME` | | none | Runtime to stop, or a process name in a running runtime; may be omitted when only one runtime runs |
+| `--process` | `-p` | none | Stop only this process (the runtime keeps running) |
 | `--force/--no-force` | | off | Kill the runtime if it hasn't stopped gracefully |
 | `--drain-timeout` | | each process's `drain_timeout` | Seconds runs in flight may take to finish before they are cancelled (0 to 3600; `0` cancels them at once) |
 | `--timeout` | | `30.0` | Seconds to wait for a graceful shutdown; with `--drain-timeout` at least the drain plus 10 |
@@ -217,7 +217,7 @@ promptise runtime logs data-watcher --journal-path /var/lib/agents/journal
 | `--lines` | `-n` | `20` | Number of most recent entries to show |
 | `--follow/--no-follow` | `-f` | off | Keep printing new entries |
 | `--journal-path` | | see below | Journal directory |
-| `--url`, `--token` | |: | Read the journal through an Orchestration API |
+| `--url`, `--token` | | none | Read the journal through an Orchestration API |
 
 Where the entries come from:
 
@@ -251,13 +251,13 @@ promptise runtime rewind notes 7c7bee77-... --mode conversation_only --yes
 | Argument / option | Short | Default | Description |
 |---|---|---|---|
 | `PROCESS` | | required | Process to rewind |
-| `ENTRY_ID` | |: | Journal entry to go back to; omit it to list recent entries |
+| `ENTRY_ID` | | none | Journal entry to go back to; omit it to list recent entries |
 | `--mode` | `-m` | `both` | `both`, `conversation_only`, `code_only` (context state) or `summarize` (rewind nothing, add a summary to the conversation) |
 | `--plan` | | off | Only show what the rewind would change |
 | `--yes` | `-y` | off | Apply without asking for confirmation |
-| `--runtime` | `-r` |: | Runtime the process runs in (needed when several runtimes run) |
+| `--runtime` | `-r` | none | Runtime the process runs in (needed when several runtimes run) |
 | `--lines` | `-n` | `20` | Entries to list when no entry ID is given (1-500) |
-| `--url`, `--token` | |: | Talk to an Orchestration API instead of a local runtime |
+| `--url`, `--token` | | none | Talk to an Orchestration API instead of a local runtime |
 
 The command shows the plan first (target entry, mode, how many entries are affected), then asks `Rewind <process>? [y/N]`. A running process is suspended for the rewind and resumed afterwards. The rewind is journaled with actor `cli`. It goes through the control API, so the process must run in a runtime and have a journal.
 

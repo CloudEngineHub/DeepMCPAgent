@@ -56,7 +56,7 @@ Top level. `from promptise import ...`
 | `ConversationMessage` | class | A single conversation message. | [Conversation Persistence](../core/conversations.md) |
 | `ConversationStore` | class | Interface for conversation persistence backends. | [Conversation Persistence](../core/conversations.md) |
 | `CredentialCategory` | enum | Credential detection categories. Pass a set of these to `PromptiseSecurityScanner(enable_credentials={...})`. | [Security Guardrails](../core/guardrails.md) |
-| `CredentialDetector` | class | Detect leaked credentials using 96 regex patterns from gitleaks/trufflehog. | [Security Guardrails](../core/guardrails.md) |
+| `CredentialDetector` | class | Detect leaked credentials using 97 regex patterns from gitleaks/trufflehog. | [Security Guardrails](../core/guardrails.md) |
 | `CrossAgent` | class | Metadata wrapper for a peer agent to be exposed as a tool. | [Cross-Agent Delegation](../core/agents/cross-agent.md) |
 | `CrossAgentConfig` | class | Cross-agent reference configuration. | [SuperAgent Files](../core/agents/superagent-files.md) |
 | `CustomRule` | class | A developer-defined regex detection rule. | [Security Guardrails](../core/guardrails.md) |

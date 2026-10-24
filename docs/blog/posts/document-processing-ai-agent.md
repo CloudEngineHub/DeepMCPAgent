@@ -67,7 +67,7 @@ scanner = PromptiseSecurityScanner(
     detectors=[
         PIIDetector(),        # 69 regex patterns + Luhn
         NERDetector(),        # GLiNER NER: names, addresses, orgs
-        CredentialDetector(), # 96 patterns: API keys, tokens, DB URLs
+        CredentialDetector(), # 97 patterns: API keys, tokens, DB URLs
     ],
 )
 scanner.warmup()   # load models once, up front

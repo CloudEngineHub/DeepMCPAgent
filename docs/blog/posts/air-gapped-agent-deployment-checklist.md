@@ -81,7 +81,7 @@ async def main():
         detectors=[
             InjectionDetector(model="/opt/models/injection", threshold=0.9),
             PIIDetector(),         # 69 regex patterns, 0 MB, no network
-            CredentialDetector(),  # 96 regex patterns, 0 MB, no network
+            CredentialDetector(),  # 97 regex patterns, 0 MB, no network
             NERDetector(model="/opt/models/gliner-pii"),
         ],
     )

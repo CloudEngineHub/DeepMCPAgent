@@ -475,6 +475,6 @@ In a `.agent` manifest it is the top-level `agent_pattern:` key. See [The agent'
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- Which reasoning patterns were right on real tasks, and at what cost.
+    - [AI Agent Reasoning Patterns in Python: From ReAct to Debate](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- How each reasoning pattern works and how to choose one.
     - [ReAct Agent From Scratch in Python: The Reason-Act Loop](https://www.promptise.com/guides/view/build-reliable-reason-and-act-agent-loops-react-from-scratch) -- The Thought, Action, Observation loop built from scratch.
     - [Plan-and-Execute Agents in Python: Beyond the ReAct Loop](https://www.promptise.com/guides/view/plan-and-execute-agent-python) -- When planning first beats a ReAct loop.

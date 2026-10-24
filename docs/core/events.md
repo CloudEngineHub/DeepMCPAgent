@@ -27,14 +27,14 @@ agent = await build_agent(
 
 ## Event Taxonomy
 
-25 event types across 9 categories. Events marked *runtime* come from an [`AgentProcess`](../runtime/index.md); the rest come from any agent built with `events=`.
+29 event types across 9 categories. Events marked *runtime* come from an [`AgentProcess`](../runtime/index.md); the rest come from any agent built with `events=`.
 
 | Category | Event Type | Severity | When it fires |
 |----------|-----------|----------|---------------|
 | **Invocation** | `invocation.start` | info | Agent begins processing |
 | | `invocation.complete` | info | Agent finishes successfully |
 | | `invocation.error` | error | Unhandled exception during invocation |
-| | `invocation.timeout` | error | Invocation exceeded `max_invocation_time` |
+| | `invocation.timeout` | error | Invocation exceeded `max_invocation_time` (`data`: `timeout_seconds`, and `streaming: true` for `astream()` / `astream_with_tools()`) |
 | **Tools** | `tool.error` | error | A tool call raised, or an MCP tool returned an error result |
 | | `tool.slow` | warning | A tool call took longer than `slow_tool_threshold` (default 5s) |
 | | `tool.progress` | info | An MCP tool reports progress (`data`: `tool_name`, `progress`, `total`, `message`) |
@@ -54,7 +54,11 @@ agent = await build_agent(
 | **Process** *(runtime)* | `process.started` | info | Agent process started |
 | | `process.stopped` | info | Agent process stopped |
 | | `process.failed` | critical | Agent process entered FAILED state (failed start, or `max_consecutive_failures` reached) |
-| | `process.restarted` | warning | Restart policy is restarting the process (`attempt`, `max_restarts`, `reason`) |
+| | `process.restarted` | warning | Restart policy is restarting the process (`attempt`, `max_restarts`, `reason`), or a `max_lifetime` recycle |
+| | `process.restart_exhausted` | critical | The process failed with `max_restarts` already used up; it stays `FAILED` |
+| | `process.suspended` | warning | The process entered `SUSPENDED`: `suspend()`, `idle_timeout`, a budget limit with `on_exceeded="pause"` or `"escalate"` (reason `"budget"`), a health anomaly with `on_anomaly="pause"` or `"escalate"`, or a rewind |
+| | `process.resumed` | info | The process left `SUSPENDED`: `resume()`, a trigger event for an idle-suspended process, or the end of a rewind |
+| | `process.rewound` | warning | `rewind()` applied a rewind |
 | **Cache** | `cache.purged` | info | A user's cached entries were deleted with `purge_user()` |
 
 `tool.error` and `tool.slow` are emitted whenever `events=` is set — they don't need `observe=True`.
@@ -96,10 +100,16 @@ The `data` of each event:
 | `health.recovered` | `process_name` |
 | `process.started` / `process.stopped` | `process_name`, `process_id` |
 | `process.failed` | `process_name`, `process_id`, `reason`, `error` |
-| `process.restarted` | `process_name`, `process_id`, `reason`, `attempt`, `max_restarts` |
+| `process.restarted` | `process_name`, `process_id`, `reason`, `attempt` (`None` for a `max_lifetime` recycle), `max_restarts` |
+| `process.restart_exhausted` | `process_name`, `process_id`, `reason`, `restarts`, `max_restarts`, `error` |
+| `process.suspended` | `process_name`, `process_id`, `reason` (`"manual"`, `"idle"`, `"budget"`, `"health"` or `"rewind"`) |
+| `process.resumed` | `process_name`, `process_id`, `reason` (`"manual"`, `"trigger"` or `"rewind"`), `suspended_for` (the reason of the suspension) |
+| `process.rewound` | `process_name`, `process_id`, `target_entry_id`, `mode`, `actor`, `entries_affected` |
 | `cache.purged` | `user_id`, `entries_removed` |
 
 Approvals that an MCP server requests through elicitation (server-side gates) emit the same `approval.*` events with `source: "mcp_elicitation"` and `server`.
+
+[Lifecycle events](../runtime/lifecycle.md#lifecycle-events) lists the same `process.*` events next to the process states and transitions they belong to.
 
 ---
 

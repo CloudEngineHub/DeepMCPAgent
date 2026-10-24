@@ -577,5 +577,5 @@ the report of a failed agent run is `exc.report`.
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- Nine reasoning patterns run on the same tasks: accuracy versus cost.
+    - [AI Agent Reasoning Patterns in Python: From ReAct to Debate](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- How the prebuilt reasoning patterns work and how to choose one.
     - [Plan-and-Execute Agents in Python: Beyond the ReAct Loop](https://www.promptise.com/guides/view/plan-and-execute-agent-python) -- A plan, act, verify, reflect graph compared with ReAct.

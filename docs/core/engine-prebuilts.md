@@ -523,5 +523,5 @@ agent = await build_agent(..., agent_pattern=graph)
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- How the prebuilt patterns compare on accuracy and cost.
+    - [AI Agent Reasoning Patterns in Python: From ReAct to Debate](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- How the prebuilt patterns work and which one fits a task.
     - [Plan-and-Execute Agents in Python: Beyond the ReAct Loop](https://www.promptise.com/guides/view/plan-and-execute-agent-python) -- Plan, act, verify, reflect, explained on one task.

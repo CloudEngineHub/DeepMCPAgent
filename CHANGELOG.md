@@ -1,5 +1,40 @@
 # Changelog
 
+## Unreleased
+
+Security fixes for custom MCP auth providers, approval gates and inbox scanning, a deadline for streamed runs, and fixes found while checking every guide against 1.9.0.
+
+### Upgrade notes
+
+- **A `.env` is looked for only up to the project root**: the nearest folder with `promptise.toml`, `pyproject.toml` or `.git`, or the working directory when there is none. A project nested in another repository no longer loads that repository's `.env`; list a shared file on purpose with `[env] files = ["../.env"]`.
+- **`astream()` and `astream_with_tools()` can raise `TimeoutError`** on an agent with `max_invocation_time`. Before, streams had no deadline. For `astream_with_tools()` this is a raised exception, not an `ErrorEvent`.
+- **A `TimeoutError` raised inside a run is reported as itself.** `ainvoke()` (and `chat()`, `invoke()`) gave "Agent invocation exceeded Ns timeout" for a `TimeoutError` from an input guardrail, memory or another step outside the graph; code that caught that message for such failures now gets the original error.
+- **A `ValidateNode` (or another reasoning node) that ends the run leaves the answer as `messages[-1]`.** Its JSON verdict was appended after the answer it checked; the verdict is in `state.context[output_key]` (`"validation"` for a `ValidateNode`).
+- **Servers with a custom auth provider and `require_auth=True` warn at startup** on HTTP and SSE when the provider has no `averify_token()`: bad credentials are then refused per call, not with a 401 at connect. Add `averify_token()` to refuse them at the transport.
+
+### Security
+
+- **A custom MCP auth provider that refused by returning a value let the call through** -- `AuthMiddleware` used whatever `authenticate()` returned, so `None`, `False` or `""` reached the tool as the client ID. It now refuses `None`, any bool and empty strings with `AUTHENTICATION_ERROR` and logs a warning naming the provider.
+- **The MCP approval gate let a call through when the handler raised `TimeoutError`** under `on_timeout="allow"` -- on Python 3.11+ `asyncio.TimeoutError` is `TimeoutError`, so a handler's own error looked like the gate's timeout. Approval gates (agent and MCP server) and `Elicitor.ask` now tell the two apart: a handler error fails closed ("Approval handler error: TimeoutError") and is not a reviewer denial for `max_retries_after_deny`.
+- **Inbox messages ignored `redact_input=True`** -- the scanner produced redacted text, but the inbox stored the raw message. Inbox messages now follow the scanner's input policy: with `redact_input=True` a credential or PII is stored redacted, a BLOCK finding still refuses the message, and with the default a message carrying a credential is accepted and logs one warning with the finding categories, never the value.
+- **A long credential across a scan-window boundary was missed** -- inbox messages and trigger payloads were scanned in 500-character windows that overlapped by 50, so a long API key split across two windows was neither redacted nor blocked. Both are now scanned whole; scanners that don't window their models themselves still get the 500-character windows as well.
+
+### Fixed
+
+- **`AuditMiddleware(include_args=True)` wrote `"args": {}` for a call that failed argument validation** -- it now records the arguments the caller sent, with `status: "error"` and `VALIDATION_ERROR`. Long strings and large lists in rejected input are clipped and marked. `StructuredLoggingMiddleware(include_args=True)` does the same, after its usual redaction.
+- **An approval-denied call's `tool.call` trace entry had no status** -- it now carries `status="denied"`, `denied_by="approval"` and the `reason`, like its `tool.result` and like a budget-refused call.
+- **`max_invocation_time` did not apply to `astream()` and `astream_with_tools()`** -- the deadline now covers the whole stream, the time the consumer spends between events included. When it passes, the stream stops (its cleanup still runs), `TimeoutError("Agent invocation exceeded Ns timeout")` is raised and `invocation.timeout` is emitted with `streaming: true`. Stopping a stream early is not a timeout, and now runs the stream's cleanup at once.
+- **"Future exception was never retrieved: InboxQuestionRemoved"** -- clearing the inbox, or a question expiring, being evicted or removed by a later scan, no longer logs it when the `/ask` waiting for the question had already timed out.
+
+### Docs
+
+- The event reference lists every process event (`process.restart_exhausted`, `process.suspended`, `process.resumed`, `process.rewound`) with its payload, and `invocation.timeout` with `timeout_seconds` and `streaming`.
+- `astream()` and `astream_with_tools()` record tool failures and inject lessons, like `ainvoke()`; the adaptive strategy page said they didn't.
+- `ToolEndEvent.reused` is also set for repeats deduplicated by `ToolNode(deduplicate=True)`.
+- The MCP server auth page documents the custom provider contract (raise `AuthenticationError` to refuse) and refusing at the transport with `averify_token()`.
+- Context compaction: set `max_result_chars` when tools return whole files, since each re-read adds a full copy.
+- `CredentialDetector` has 97 patterns (some posts said 96); table cells that lost their dash show `none` or their value; links to renamed guides use the current titles.
+
 ## 1.9.0 — 2026-10-23
 
 Runtime processes can pick their reasoning pattern. Traces keep the tenant and the session, record tool arguments as data and show refused calls and approval decisions. Plus fixes for `promptise run --check` with agent factories and a `Prompt` that reached the model twice.

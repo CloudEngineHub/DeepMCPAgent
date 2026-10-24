@@ -284,4 +284,4 @@ PromptGraph.code_action(
 
 !!! tip "Learn the concept"
 
-    - [Code-Action Agents in Python: One Program vs 37 Tool Calls](https://www.promptise.com/guides/view/code-action-agent-python) -- One generated program versus dozens of tool calls, measured against ReAct.
+    - [Code-Action Agents in Python: One Program vs 37 Tool Calls](https://www.promptise.com/guides/view/code-action-agent-python) -- When one generated program beats dozens of tool calls, and how to build it.

@@ -63,7 +63,7 @@ async def main():
         detectors=[
             InjectionDetector(),   # local transformer; swap in a local path for air-gap
             PIIDetector(),         # 69 regex patterns, no model download
-            CredentialDetector(),  # 96 regex patterns, no model download
+            CredentialDetector(),  # 97 regex patterns, no model download
         ],
     )
     scanner.warmup()  # load models from disk now, not on the first message

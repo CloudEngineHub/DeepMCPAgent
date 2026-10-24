@@ -616,5 +616,5 @@ action does and its limits.
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- Why a reasoning graph beats a single loop on some tasks, measured.
+    - [AI Agent Reasoning Patterns in Python: From ReAct to Debate](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- When a reasoning graph helps more than a single loop, and how to switch.
     - [Topic hub: Agent reasoning patterns](https://www.promptise.com/guides/topics/reasoning-patterns) -- Every guide on agent reasoning patterns.
