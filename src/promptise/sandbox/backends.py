@@ -443,8 +443,17 @@ class DockerBackend(SandboxBackend):
             config.update(host_config_dict)
 
             container = client.containers.create(**config)
+        except Exception as e:
+            raise RuntimeError(f"Failed to create container: {e}") from e
+
+        try:
             container.start()
         except Exception as e:
+            # A container that never started is still there: remove it.
+            try:
+                container.remove(force=True)
+            except Exception:
+                logger.warning("Failed to remove container %s", container.id, exc_info=True)
             raise RuntimeError(f"Failed to create container: {e}") from e
 
         if self.config.network == NetworkMode.RESTRICTED:

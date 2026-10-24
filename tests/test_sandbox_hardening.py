@@ -732,3 +732,24 @@ class TestImagePull:
         with pytest.raises(RuntimeError, match="daemon unavailable"):
             await backend.create_container()
         client.api.pull.assert_not_called()
+
+
+class TestContainerStartFailure:
+    @pytest.mark.asyncio
+    async def test_a_container_that_fails_to_start_is_removed(self):
+        container = MagicMock(id="c1")
+        container.start.side_effect = RuntimeError("exec: /bin/bash: no such file")
+        backend = _backend_with_container(container, SandboxConfig(image="python:3.12-slim"))
+        with pytest.raises(RuntimeError, match="Failed to create container: exec: /bin/bash"):
+            await backend.create_container()
+        container.remove.assert_called_once_with(force=True)
+
+    @pytest.mark.asyncio
+    async def test_a_failed_removal_keeps_the_start_error(self, caplog):
+        container = MagicMock(id="c1")
+        container.start.side_effect = RuntimeError("port is already allocated")
+        container.remove.side_effect = RuntimeError("daemon gone")
+        backend = _backend_with_container(container, SandboxConfig(image="python:3.12-slim"))
+        with pytest.raises(RuntimeError, match="port is already allocated"):
+            await backend.create_container()
+        assert "Failed to remove container c1" in caplog.text

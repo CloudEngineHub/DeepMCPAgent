@@ -14,6 +14,7 @@ All notable changes to Promptise Foundry are documented here.
 ### Fixed
 
 - **An MCP server approval handler that raised an error gave the client `INTERNAL_ERROR`** -- the call was refused, but with no approval reason and no request id. `ApprovalGateMiddleware` now denies with `APPROVAL_DENIED`, "approval handler error: <type>" in the message and `approval_request_id` in the details, like the agent's gate; the error itself goes to the server log. A handler that raises an `MCPError` (such as `ApprovalDeniedError`) still has it sent as is.
+- **A sandbox container that failed to start was left behind** -- `DockerBackend.create_container` created the container, and when `start()` failed (for example an image without `/bin/bash`) it raised without removing it, so `docker ps -a` kept a `Created` container for every failed session. It is now removed before the error is raised.
 
 ---
 
