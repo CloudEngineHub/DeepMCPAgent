@@ -160,8 +160,8 @@ async def _run(
             try:
                 arguments = validate_arguments(model, _preparse_json_strings(arguments, model))
             except ValidationError as invalid:
+                handler = defer_validation_error(ctx, invalid, arguments)
                 arguments = {}
-                handler = defer_validation_error(ctx, invalid)
         ctx.state["_tool_arguments"] = dict(arguments)
 
         arguments = await di_resolver.resolve(handler, arguments)

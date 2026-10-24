@@ -107,6 +107,53 @@ async def test_custom_auth_provider_example_gives_the_caller_its_roles():
     assert "AUTHENTICATION_ERROR" in await call("tok-revoked")
 
 
+async def test_custom_provider_with_averify_token_is_refused_at_the_gate(tmp_path, caplog):
+    import hashlib
+
+    from promptise.mcp.server import AuthMiddleware, MCPServer, RequestContext
+    from promptise.mcp.server._transport import _AuthGateASGI
+
+    ns = _run(_code_block("mcp/server/auth-security.md", "Custom auth provider", index=1))
+    key = "crm-" + "k" * 12
+    store = tmp_path / "keys.json"
+    entry = {"client": "crm-agent", "revoked": False}
+    store.write_text(json.dumps({hashlib.sha256(key.encode()).hexdigest(): entry}))
+
+    server = MCPServer("crm", require_auth=True)
+    server.add_middleware(AuthMiddleware(ns["RevocableKeyAuth"](store)))
+
+    @server.tool()
+    async def whoami(ctx: RequestContext) -> str:
+        return str(ctx.client_id)
+
+    server.asgi_app()
+    assert "HTTP auth gate is off" not in caplog.text  # the prose: no startup warning
+
+    async def gate_status() -> int:
+        sent: list[dict[str, Any]] = []
+
+        async def ok_app(scope: Any, receive: Any, send: Any) -> None:
+            pass
+
+        async def send(message: dict[str, Any]) -> None:
+            sent.append(message)
+
+        gate = _AuthGateASGI(ok_app, server._transport_auth_gate())
+        await gate(
+            {"type": "http", "path": "/mcp", "headers": [(b"x-api-key", key.encode())]}, None, send
+        )
+        return next((m["status"] for m in sent if m["type"] == "http.response.start"), 200)
+
+    client = TestClient(server, meta={"x-api-key": key})
+    assert _text(await client.call_tool("whoami", {})) == "crm-agent"
+    assert await gate_status() == 200
+
+    entry["revoked"] = True
+    store.write_text(json.dumps({hashlib.sha256(key.encode()).hexdigest(): entry}))
+    assert "AUTHENTICATION_ERROR" in _text(await client.call_tool("whoami", {}))
+    assert await gate_status() == 401
+
+
 # ---------------------------------------------------------------------------
 # caching-performance.md
 # ---------------------------------------------------------------------------

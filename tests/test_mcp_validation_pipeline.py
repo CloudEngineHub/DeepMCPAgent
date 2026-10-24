@@ -134,6 +134,19 @@ class TestOverHTTP:
         # The audit entry does not carry the rejected input either
         assert all(len(json.dumps(e)) < MAX_ERROR_CHARS for e in audit.entries)
 
+    @pytest.mark.asyncio
+    async def test_audit_with_include_args_records_the_rejected_input_bounded(self) -> None:
+        # It wrote "args": {} for a rejected call, hiding what was sent.
+        audit = AuditMiddleware(signed=False, include_args=True)
+        async with serve_mcp(_server(audit)) as port:
+            async with MCPClient(url=f"http://127.0.0.1:{port}/mcp", api_key=KEY) as client:
+                await _Wire(client).call("echo", {"text": BIG, "unexpected": 7})
+        [entry] = audit.entries
+        assert entry["error_code"] == "VALIDATION_ERROR"
+        assert entry["args"]["unexpected"] == 7
+        assert entry["args"]["text"].startswith("xxxx") and entry["args"]["text"].endswith("...")
+        assert len(json.dumps(entry)) < MAX_ERROR_CHARS
+
 
 class TestInProcessParity:
     @pytest.mark.asyncio

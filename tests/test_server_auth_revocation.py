@@ -345,3 +345,80 @@ class TestAsymmetricRevocation:
         auth.revoke(subject="bot")
         with pytest.raises(AuthenticationError, match="revoked"):
             await auth.authenticate(_bearer_ctx(token))
+
+
+# =====================================================================
+# Custom providers: a refusal stops the call, however it is expressed
+# =====================================================================
+
+
+class _RevocableKeys:
+    """A custom provider over a key store that can revoke keys while it runs."""
+
+    def __init__(self, refuse_by: str = "raise") -> None:
+        self.store = {KEY_A: {"client": "agent-1", "revoked": False}}
+        self._refuse_by = refuse_by
+
+    async def authenticate(self, ctx: RequestContext):
+        entry = self.store.get(ctx.meta.get("x-api-key", ""))
+        if entry is None or entry["revoked"]:
+            if self._refuse_by == "raise":
+                raise AuthenticationError("API key revoked")
+            return {"none": None, "false": False, "empty": ""}[self._refuse_by]
+        return entry["client"]
+
+
+def _counting_server(auth, ran: list[str]) -> MCPServer:
+    server = MCPServer(name="crm", require_auth=True)
+    server.add_middleware(AuthMiddleware(auth))
+
+    @server.tool()
+    async def list_contacts(ctx: RequestContext, company: str) -> str:
+        ran.append(str(ctx.client_id))
+        return f"contacts at {company}"
+
+    return server
+
+
+class TestCustomProviderRefusal:
+    @pytest.mark.parametrize("refuse_by", ["raise", "none", "false", "empty"])
+    async def test_a_refusal_ends_the_call_before_the_tool_runs(self, refuse_by, caplog):
+        # Returning None, False or "" let the call reach the tool with no
+        # client id; only a raised AuthenticationError refused it.
+        auth = _RevocableKeys(refuse_by)
+        ran: list[str] = []
+        client = TestClient(_counting_server(auth, ran))
+        headers = {"x-api-key": KEY_A}
+
+        ok = await client.call_tool("list_contacts", {"company": "Acme"}, headers=headers)
+        assert "contacts at Acme" in ok[0].text
+        auth.store[KEY_A]["revoked"] = True
+        refused = await client.call_tool("list_contacts", {"company": "Acme"}, headers=headers)
+
+        assert '"AUTHENTICATION_ERROR"' in refused[0].text
+        assert ran == ["agent-1"]
+        if refuse_by != "raise":
+            assert "instead of a client id" in caplog.text
+
+    async def test_without_a_verifier_the_server_warns_that_the_http_gate_is_off(self, caplog):
+        server = _counting_server(_RevocableKeys(), [])
+        assert server._transport_auth_gate() is None
+        server.asgi_app()
+        assert "HTTP auth gate is off" in caplog.text
+
+    async def test_averify_token_arms_the_http_gate_for_a_custom_provider(self, caplog):
+        class GatedKeys(_RevocableKeys):
+            async def averify_token(self, credential: str) -> bool:
+                entry = self.store.get(credential)
+                return entry is not None and not entry["revoked"]
+
+        auth = GatedKeys()
+        server = _counting_server(auth, [])
+        server.asgi_app()
+        assert "HTTP auth gate is off" not in caplog.text
+        gate = _AuthGateASGI(_ok_app, server._transport_auth_gate())
+        header = [(b"x-api-key", KEY_A.encode())]
+
+        assert await _gate_status(gate, header) == 200
+        auth.store[KEY_A]["revoked"] = True
+        assert await _gate_status(gate, header) == 401

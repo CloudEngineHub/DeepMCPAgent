@@ -262,6 +262,8 @@ With `require_auth=True` and an `AuthMiddleware` installed, the server checks ev
 
 The gate calls the provider's `averify_token()` when it has one (all built-in providers do), else its `verify_token()`, so an async key store or revocation hook runs on every request, and a revoked key or token gets `401` on its next request. A verifier that raises rejects the request.
 
+A provider with neither, such as a custom provider with only `authenticate()`, gets no gate: the server logs a warning at startup, any client can open a session and list the tools, and `AuthMiddleware` refuses each call with `AUTHENTICATION_ERROR` before the tool runs. Give the provider an `averify_token(credential) -> bool` to refuse a bad credential with `401` as the built-in providers do (see [Custom auth provider](auth-security.md#custom-auth-provider)).
+
 Unauthenticated requests receive a `401` JSON response:
 
 ```json

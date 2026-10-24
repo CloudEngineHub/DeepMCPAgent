@@ -344,6 +344,42 @@ class OAuth2Introspection:
 
 Install it like any provider: `server.add_middleware(AuthMiddleware(OAuth2Introspection(introspect)))`. A tool declared with `roles=["admin"]` then passes for a token whose claims include `"roles": ["admin"]`. Without the `jwt_payload` claims the caller is authenticated but has no roles or scopes.
 
+**Refusing a request.** Raise `AuthenticationError` with the reason. The call ends with an `AUTHENTICATION_ERROR` result carrying your message, and the tool never runs. Returning `None`, `True`, `False` or an empty string is refused the same way, with the message `Authentication failed` and a warning in the server log, so a provider that forgets to raise can't let a caller through.
+
+**Refusing at the transport.** With `MCPServer(require_auth=True)` on HTTP or SSE, the [transport gate](deployment.md#transport-level-auth-gate) checks the credential on every HTTP request and answers a bad one with `401` before any MCP message is handled. The gate only has the credential (the bearer token, or the API key header), not a `RequestContext`, so it can't call `authenticate()`. It calls the provider's `async def averify_token(credential) -> bool` (or a sync `verify_token`) instead. The built-in providers have one. A custom provider without one still refuses every call in `AuthMiddleware`, but any client can open a session and list the tools, and the server logs a warning at startup. Add `averify_token` to close that gap:
+
+```python
+import hashlib
+import json
+from pathlib import Path
+
+from promptise.mcp.server import AuthenticationError, RequestContext
+
+
+class RevocableKeyAuth:
+    """API keys checked against a store that can revoke them while the server runs."""
+
+    header = "x-api-key"  # the header the transport gate reads the key from
+
+    def __init__(self, store: Path):
+        self._store = store
+
+    def _entry(self, key: str) -> dict | None:
+        entry = json.loads(self._store.read_text()).get(hashlib.sha256(key.encode()).hexdigest())
+        return None if entry is None or entry["revoked"] else entry
+
+    async def averify_token(self, credential: str) -> bool:
+        return self._entry(credential) is not None  # False: 401 at the transport
+
+    async def authenticate(self, ctx: RequestContext) -> str:
+        entry = self._entry(ctx.meta.get(self.header, ""))
+        if entry is None:
+            raise AuthenticationError("Invalid or revoked API key")
+        return entry["client"]
+```
+
+For keys alone, `APIKeyAuth(lookup=...)` does all of this for you (see [APIKeyAuth](#apikeyauth)).
+
 ## AuthMiddleware
 
 `AuthMiddleware` wraps an auth provider and runs it for tools, resources and prompts marked with `auth=True`:
@@ -358,7 +394,7 @@ server.add_middleware(AuthMiddleware(jwt_auth))
 
 | Parameter | Default | Description |
 |---|---|---|
-| `provider` | required | Any `AuthProvider`: an object with `async def authenticate(ctx) -> str` (the client id). `verify_token(token) -> bool` is optional and used by the [transport gate](deployment.md#transport-level-auth-gate) |
+| `provider` | required | Any `AuthProvider`: an object with `async def authenticate(ctx) -> str` (the client id; raise `AuthenticationError` to refuse). `averify_token(credential) -> bool` (or a sync `verify_token`) is optional; the [transport gate](deployment.md#transport-level-auth-gate) only runs for a provider that has one |
 | `on_authenticate` | `None` | `OnAuthenticateHook`: sync or async `(client: ClientContext, ctx: RequestContext)`, called after a successful authentication |
 | `tenant_claim` | `"tenant_id"` | JWT claim copied to `ctx.client.tenant_id` (string values only) |
 
@@ -366,7 +402,7 @@ When a tool has `auth=True`:
 
 1. The middleware calls `provider.authenticate(ctx)`.
 2. On success, `ctx.client_id` is set and `ctx.client` is populated with a full `ClientContext`: identity, roles, scopes, JWT claims (`iss`, `aud`, `sub`, `iat`, `exp`), client IP address, and user-agent.
-3. On failure, an `AuthenticationError` is returned to the client.
+3. On failure (the provider raised, or returned `None`, a bool or an empty string), an `AuthenticationError` is returned to the client and the tool does not run.
 
 Tools without `auth=True` pass through the middleware without authentication checks. `roles=[...]` and the built-in identity guards (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `HasAllScopes`, `RequireClientId`, `RequireTenant`, `HasTenant`) imply `auth=True`, since they can only pass once the caller is identified. A custom guard does not: give its tool `auth=True` if the guard reads `ctx.client`.
 
@@ -824,7 +860,7 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
 | `AsymmetricJWTAuth(public_key, algorithm, audience, issuer)` | Class | RS256/ES256 asymmetric JWT authentication |
 | `JwksAuth(jwks_url, audience, issuer, algorithms, meta_key, leeway)` | Class | JWT authentication against an IdP's rotating JWKS keys |
 | `JwksAuth.from_discovery(issuer, audience, ...)` | Class method | Discover the JWKS URL from OIDC metadata |
-| `AuthProvider` | Protocol | `async authenticate(ctx) -> str` for custom providers |
+| `AuthProvider` | Protocol | `async authenticate(ctx) -> str` for custom providers (raise `AuthenticationError` to refuse); add `averify_token(credential) -> bool` for the transport gate |
 | `AuthMiddleware(provider, on_authenticate, tenant_claim)` | Class | Middleware that enforces auth and populates `ClientContext` |
 | `OnAuthenticateHook` | Type | `(ClientContext, RequestContext) -> None` (sync or async) |
 | `ClientContext` | Dataclass | Structured client info: identity, roles, scopes, JWT claims, IP, user-agent |

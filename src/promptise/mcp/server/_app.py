@@ -1068,6 +1068,7 @@ class MCPServer:
         # ---- Warn about an unauthenticated server reachable from the network ----
         if transport_type != TransportType.STDIO:
             self._warn_unauthenticated_bind(host, port)
+            self._warn_ungated_auth_provider()
 
         # ---- Auth gate for transport-level rejection ----
         auth_gate = self._transport_auth_gate()
@@ -1168,6 +1169,7 @@ class MCPServer:
             "127.0.0.1", allowed_hosts=allowed_hosts, allowed_origins=allowed_origins
         )
         ll_server = self._build_lowlevel_server()
+        self._warn_ungated_auth_provider()
         common: dict[str, Any] = {
             "shutdown_timeout": self._shutdown_timeout,
             "auth_gate": self._transport_auth_gate(),
@@ -1214,6 +1216,28 @@ class MCPServer:
             self.name,
             host,
             port,
+        )
+
+    def _warn_ungated_auth_provider(self) -> None:
+        """Log a warning when ``require_auth`` cannot arm the HTTP auth gate.
+
+        The gate verifies a credential with the provider's ``averify_token``
+        or ``verify_token``.  A custom provider with only ``authenticate()``
+        still refuses every call in ``AuthMiddleware``, before the tool runs,
+        but the transport accepts any connection, and a bad credential gets
+        an ``AUTHENTICATION_ERROR`` result instead of ``401``.
+        """
+        provider = self._auth_provider
+        if not self._require_auth or provider is None or self._transport_auth_gate():
+            return
+        logger.warning(
+            "MCP server %r has require_auth=True, but its auth provider %s has no "
+            "averify_token() or verify_token(), so the HTTP auth gate is off: any client "
+            "can connect, and each call is refused by AuthMiddleware instead of with 401. "
+            "Add 'async def averify_token(self, credential: str) -> bool' to the provider "
+            "to refuse a bad credential at the transport.",
+            self.name,
+            type(provider).__name__,
         )
 
     def _transport_auth_gate(self) -> Callable[[str], Any] | None:
@@ -1633,8 +1657,8 @@ class MCPServer:
                     try:
                         arguments = validate_arguments(model, arguments)
                     except ValidationError as invalid:
+                        handler = defer_validation_error(ctx, invalid, arguments)
                         arguments = {}
-                        handler = defer_validation_error(ctx, invalid)
 
                 # Snapshot the validated user arguments for middleware that
                 # needs them (approval gate) — before DI injects framework

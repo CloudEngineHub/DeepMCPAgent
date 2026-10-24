@@ -144,6 +144,45 @@ class TestAuditLogFile:
         [entry] = _file_entries(path)
         assert entry["args"] == {"patient_id": "P-1"}
 
+    async def test_include_args_records_what_a_rejected_call_sent(self, tmp_path: Any) -> None:
+        # A call that failed argument validation was logged with "args": {},
+        # so the audit hid what the caller sent.
+        from promptise.mcp.server import MCPServer, TestClient
+
+        path = tmp_path / "audit.jsonl"
+        server = MCPServer(name="refunds")
+        server.add_middleware(
+            AuditMiddleware(log_path=str(path), hmac_secret=_KEY, include_args=True)
+        )
+
+        @server.tool()
+        async def issue_refund(order_id: str, amount: float) -> dict:
+            return {"order_id": order_id, "refunded": amount}
+
+        await TestClient(server).call_tool("issue_refund", {"order_id": "A-1", "amount": "lots"})
+        [entry] = _file_entries(path)
+        assert entry["status"] == "error"
+        assert entry["error_code"] == "VALIDATION_ERROR"
+        assert entry["args"] == {"order_id": "A-1", "amount": "lots"}
+        assert _links([entry])
+
+    async def test_rejected_arguments_are_bounded(self, tmp_path: Any) -> None:
+        # No schema limited a rejected call's input: a 1 MB string or a huge
+        # list must not make the audit entry grow with it.
+        from promptise.mcp.server import TestClient
+
+        path = tmp_path / "audit.jsonl"
+        audit = AuditMiddleware(log_path=str(path), hmac_secret=_KEY, include_args=True)
+        server = _records_server(audit)
+        huge = {"patient_id": ["x" * 1_000_000] * 5_000, "extra": {"k" * 10_000: 1}}
+        await TestClient(server).call_tool("view_record", huge)
+        [entry] = _file_entries(path)
+        assert entry["error_code"] == "VALIDATION_ERROR"
+        assert len(json.dumps(entry)) < 20_000
+        sent = entry["args"]["patient_id"]
+        assert sent[0].startswith("xxx") and sent[0].endswith("...")
+        assert sent[-1].endswith("more items>")
+
     async def test_file_holds_entries_in_chain_order(
         self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
     ) -> None:

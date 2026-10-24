@@ -20,6 +20,7 @@ from collections.abc import Callable
 from typing import Any
 
 from ._context import RequestContext
+from ._validation import REJECTED_ARGUMENTS, bounded_rejected_arguments
 
 logger = logging.getLogger("promptise.server")
 
@@ -35,8 +36,8 @@ class StructuredLoggingMiddleware:
     - ``duration_ms``: Execution time (on completion)
     - ``status``: ``"ok"`` or ``"error"``
     - ``error``: Error message (on failure)
-    - ``args``: The validated arguments (on ``tool_call_start``, with
-      ``include_args=True``)
+    - ``args``: The validated arguments, or for a rejected call the ones
+      the caller sent (on ``tool_call_start``, with ``include_args=True``)
 
     Args:
         log_level: Python logging level (default ``logging.INFO``).
@@ -48,7 +49,10 @@ class StructuredLoggingMiddleware:
             and credentials or PII in strings (API keys, JWTs, card
             numbers, email addresses...) are replaced with placeholders.
             Pattern matching can't recognise every kind of personal data,
-            so leave this off for tools that take it.
+            so leave this off for tools that take it.  A call whose
+            arguments fail validation logs the arguments as the caller
+            sent them, redacted the same way, with long strings and lists
+            clipped and marked.
     """
 
     def __init__(
@@ -72,11 +76,19 @@ class StructuredLoggingMiddleware:
             from ...observability import redact_sensitive
             from ._audit import _json_default
 
-            arguments = ctx.state.get("_tool_arguments")
+            # A call whose arguments failed validation has no validated
+            # arguments: log what the caller sent, as the audit log does.
+            rejected = ctx.state.get(REJECTED_ARGUMENTS)
+            arguments = rejected if isinstance(rejected, dict) else ctx.state.get("_tool_arguments")
             # JSON data first (nested models as objects), so redaction
             # reaches the strings inside them.
             plain = json.loads(json.dumps(arguments, default=_json_default))
-            entry["args"] = redact_sensitive(plain if isinstance(plain, dict) else {})
+            redacted = redact_sensitive(plain if isinstance(plain, dict) else {})
+            # Redact before clipping: a clip through a credential would
+            # leave a fragment the patterns no longer recognise.
+            entry["args"] = (
+                bounded_rejected_arguments(redacted) if isinstance(rejected, dict) else redacted
+            )
 
         logger.log(self._level, json.dumps(entry, default=str))
 

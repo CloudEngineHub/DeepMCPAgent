@@ -57,6 +57,14 @@ class AuthProvider(Protocol):
     ``ctx.state["jwt_payload"]``: ``AuthMiddleware`` builds ``ctx.client``
     from them as it does for a JWT (``roles``, ``scope``, the tenant claim,
     ``iss`` / ``aud`` / ``sub`` / ``iat`` / ``exp``).
+
+    Refuse a request by raising :class:`AuthenticationError`; a return of
+    ``None``, a bool or an empty string is refused too.  Either way the
+    call ends with ``AUTHENTICATION_ERROR`` before the tool runs.  With
+    ``MCPServer(require_auth=True)`` the HTTP auth gate also refuses a bad
+    credential with ``401`` before any MCP request, but only for a provider
+    that has ``async def averify_token(credential) -> bool`` (or a sync
+    ``verify_token``), as the built-in providers do.
     """
 
     async def authenticate(self, ctx: RequestContext) -> str:
@@ -1520,9 +1528,20 @@ class AuthMiddleware:
         server hides tools the caller may not call.
 
         Raises:
-            AuthenticationError: Missing or invalid credentials.
+            AuthenticationError: Missing or invalid credentials, or the
+                provider returned no client id (``None``, a bool, ``""``).
         """
         client_id = await self._provider.authenticate(ctx)
+        if client_id is None or isinstance(client_id, bool) or not str(client_id).strip():
+            # Fail closed: a provider that refuses by returning None, False or
+            # "" (instead of raising) let the call through unauthenticated.
+            logger.warning(
+                "Auth provider %s returned %r instead of a client id; request refused. "
+                "Raise AuthenticationError to refuse a request.",
+                type(self._provider).__name__,
+                client_id,
+            )
+            raise AuthenticationError("Authentication failed")
         ctx.client_id = client_id
 
         # Build structured ClientContext.  Built-in providers store the

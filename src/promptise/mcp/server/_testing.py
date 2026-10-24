@@ -213,8 +213,8 @@ class TestClient:
                 try:
                     arguments = validate_arguments(model, arguments)
                 except ValidationError as invalid:
+                    handler = defer_validation_error(ctx, invalid, arguments)
                     arguments = {}
-                    handler = defer_validation_error(ctx, invalid)
 
             # Snapshot validated user args for middleware (approval gate),
             # before DI injects framework objects — parity with the live path

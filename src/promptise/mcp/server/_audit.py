@@ -36,6 +36,7 @@ from typing import Any
 
 from ._context import RequestContext
 from ._errors import MCPError
+from ._validation import REJECTED_ARGUMENTS, bounded_rejected_arguments
 
 logger = logging.getLogger("promptise.server")
 
@@ -153,7 +154,10 @@ class AuditMiddleware:
         include_args: Log tool arguments (default ``False`` — may
             contain PII).  They are logged as the tool validated them, as
             JSON: a Pydantic model argument (or one nested in a list or
-            dict) is a JSON object, a ``datetime`` an ISO string.
+            dict) is a JSON object, a ``datetime`` an ISO string.  A call
+            whose arguments fail validation (``error_code`` is
+            ``VALIDATION_ERROR``) is logged with the arguments as the
+            caller sent them, with long strings and lists clipped.
         include_result: Log tool results (default ``False``).
         max_memory_entries: How many entries :attr:`entries` keeps in
             memory (default 10 000; ``None`` keeps all).  The file keeps
@@ -386,8 +390,14 @@ class AuditMiddleware:
             # The validated arguments the caller sent (set by the server
             # before the middleware chain runs) — not ctx.state, which holds
             # the tool definition and whatever other middleware stored there.
-            arguments = ctx.state.get("_tool_arguments")
-            entry["args"] = dict(arguments) if isinstance(arguments, dict) else {}
+            # A call whose arguments failed validation has none: record what
+            # the caller sent instead, bounded, since no schema limited it.
+            rejected = ctx.state.get(REJECTED_ARGUMENTS)
+            if isinstance(rejected, dict):
+                entry["args"] = bounded_rejected_arguments(rejected)
+            else:
+                arguments = ctx.state.get("_tool_arguments")
+                entry["args"] = dict(arguments) if isinstance(arguments, dict) else {}
 
         if self._include_result and result is not None and not error:
             try:

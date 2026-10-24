@@ -61,6 +61,25 @@ async def test_include_args_logs_redacted_arguments(caplog: pytest.LogCaptureFix
     assert "hunter2" not in caplog.text
 
 
+async def test_include_args_logs_what_a_rejected_call_sent(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # A call that failed argument validation was logged with "args": {}.
+    # Now it logs the input the caller sent: redacted, then clipped.
+    caplog.set_level(logging.INFO, logger="promptise.server")
+    sent = {"user": ["not", "a", "name"], "password": "hunter2", "note": "x" * 1_000_000}
+    await TestClient(_logging_server(True)).call_tool("sign_in", sent)
+    entries = _logged_entries(caplog)
+    (start,) = [e for e in entries if e.get("event") == "tool_call_start"]
+    (end,) = [e for e in entries if e.get("event") == "tool_call_end"]
+    assert end["status"] == "error"
+    assert start["args"]["user"] == ["not", "a", "name"]
+    assert start["args"]["password"] == "[REDACTED]"
+    assert start["args"]["note"].startswith("xxx") and start["args"]["note"].endswith("...")
+    assert len(json.dumps(start)) < 20_000
+    assert "hunter2" not in caplog.text
+
+
 async def test_arguments_are_not_logged_by_default(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO, logger="promptise.server")
     await TestClient(_logging_server(False)).call_tool("sign_in", {"user": "ada", "password": "x"})

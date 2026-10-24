@@ -489,8 +489,22 @@ def _bounded_validation_error(exc: PydanticValidationError) -> ValidationError:
 #: calling the next layer (cache lookup, approval request) checks it.
 PENDING_VALIDATION_ERROR = "_validation_error"
 
+#: ``ctx.state`` key holding the arguments of a rejected call as the caller
+#: sent them.  Only the audit log reads it (``AuditMiddleware(include_args=
+#: True)``, through :func:`bounded_rejected_arguments`); every other layer
+#: sees the empty ``_tool_arguments`` of a rejected call.
+REJECTED_ARGUMENTS = "_rejected_arguments"
 
-def defer_validation_error(ctx: Any, exc: ValidationError) -> Any:
+# Bounds on the rejected arguments an audit entry records.  Valid arguments
+# are bounded by the tool's schema; rejected ones are not (a 1 MB string
+# against ``max_length=10`` is the typical rejected call).
+_MAX_REJECTED_STR_CHARS = 1000
+_MAX_REJECTED_TOTAL_CHARS = 8000
+_MAX_REJECTED_ITEMS = 100
+_MAX_REJECTED_DEPTH = 8
+
+
+def defer_validation_error(ctx: Any, exc: ValidationError, raw_arguments: Any = None) -> Any:
     """Record *exc* on *ctx* and return a handler that raises it.
 
     The server runs this handler through the full middleware chain in
@@ -498,8 +512,13 @@ def defer_validation_error(ctx: Any, exc: ValidationError) -> Any:
     limited and audited like any other before the caller receives the
     ``VALIDATION_ERROR`` envelope.  The handler takes no arguments: the
     rejected input never reaches dependency injection or middleware.
+
+    *raw_arguments* (the arguments as the caller sent them) are kept under
+    :data:`REJECTED_ARGUMENTS`, so the audit log can record what was sent.
     """
     ctx.state[PENDING_VALIDATION_ERROR] = exc
+    if isinstance(raw_arguments, Mapping):
+        ctx.state[REJECTED_ARGUMENTS] = dict(raw_arguments)
 
     async def _reject_invalid_input() -> Any:
         raise exc
@@ -510,3 +529,47 @@ def defer_validation_error(ctx: Any, exc: ValidationError) -> Any:
 def validation_pending(ctx: Any) -> bool:
     """Whether the call's arguments were rejected (see :func:`defer_validation_error`)."""
     return ctx is not None and ctx.state.get(PENDING_VALIDATION_ERROR) is not None
+
+
+def bounded_rejected_arguments(arguments: Mapping[str, Any]) -> dict[str, Any]:
+    """*arguments* of a rejected call, with a size that does not depend on the input.
+
+    Strings are clipped, dicts and lists keep their first items, nesting
+    stops at a fixed depth, and the strings together stay within a fixed
+    budget.  Whatever is cut is marked (``"..."``, ``"<N more items>"``), so
+    the record shows what the caller sent without the log growing with it.
+    """
+    budget = [_MAX_REJECTED_TOTAL_CHARS]
+
+    def text(value: str, limit: int = _MAX_REJECTED_STR_CHARS) -> str:
+        limit = max(min(limit, budget[0]), 3)
+        clipped = _clip(value, limit)
+        budget[0] -= len(clipped)
+        return clipped
+
+    def bound(value: Any, depth: int) -> Any:
+        if isinstance(value, str):
+            return text(value)
+        if isinstance(value, (Mapping, list, tuple)):
+            if depth >= _MAX_REJECTED_DEPTH or budget[0] <= 0:
+                return "<nested too deep>" if budget[0] > 0 else "..."
+            if isinstance(value, Mapping):
+                out: dict[str, Any] = {}
+                for i, (key, item) in enumerate(value.items()):
+                    if i == _MAX_REJECTED_ITEMS or budget[0] <= 0:
+                        out["..."] = f"<{len(value) - i} more keys>"
+                        break
+                    name = text(str(key), _MAX_LOC_CHARS)  # before the value spends the budget
+                    out[name] = bound(item, depth + 1)
+                return out
+            items: list[Any] = []
+            for i, item in enumerate(value):
+                if i == _MAX_REJECTED_ITEMS or budget[0] <= 0:
+                    items.append(f"<{len(value) - i} more items>")
+                    break
+                items.append(bound(item, depth + 1))
+            return items
+        return value
+
+    result: dict[str, Any] = bound(dict(arguments), 0)
+    return result
