@@ -9,6 +9,14 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
+## Unreleased
+
+### Fixed
+
+- **An MCP server approval handler that raised an error gave the client `INTERNAL_ERROR`** -- the call was refused, but with no approval reason and no request id. `ApprovalGateMiddleware` now denies with `APPROVAL_DENIED`, "approval handler error: <type>" in the message and `approval_request_id` in the details, like the agent's gate; the error itself goes to the server log. A handler that raises an `MCPError` (such as `ApprovalDeniedError`) still has it sent as is.
+
+---
+
 ## v1.10.0 — 2026-10-24
 
 Security fixes for custom MCP auth providers, approval gates and inbox scanning, a deadline for streamed runs, and fixes found while checking every guide against 1.9.0.

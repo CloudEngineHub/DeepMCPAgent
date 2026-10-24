@@ -342,7 +342,7 @@ handler = WebhookApprovalHandler(
 
    Or 202 if still pending (handler continues polling)
 
-5. On timeout: handler raises TimeoutError → on_timeout action triggers
+5. No decision within the timeout: the gate's timeout applies (on_timeout, deny by default)
 ```
 
 Include `request_id` in the decision you return. When it is there, the handler only accepts a decision for the request it is waiting on: a response for another request id (a stale decision behind a fixed `poll_url`, or a replayed one) is logged and ignored, and polling continues. Responses without `request_id` are still accepted. The handler takes one decision per request id: asked again about an id it already decided, it raises `ApprovalReplayError` and the gate denies the call.

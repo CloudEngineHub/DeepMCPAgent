@@ -60,7 +60,7 @@ verified caller identity (client id, tenant, JWT subject).
 | Decision `approved=False` | `ApprovalDeniedError` (`APPROVAL_DENIED`, not retryable); `reviewer_id` + `approval_request_id` in `details`, the reviewer's reason in the message |
 | No decision within `timeout` | **Denied by default** (`on_timeout="allow"` opts out, explicitly) |
 | Decision carries `modified_arguments` | **Denied**: the server-side gate cannot rewrite bound arguments, and executing the original args after a reviewer changed them would run something they didn't approve |
-| Handler crash | Denied via the error pipeline |
+| Handler raises an error | **Denied** (`APPROVAL_DENIED`): the message names the error type (`approval handler error: RuntimeError`), `approval_request_id` is in `details`, and the error itself is in the server log. A `TimeoutError` the handler raises is an error like any other, never the gate's timeout, so `on_timeout="allow"` doesn't apply. A handler that raises an `MCPError` such as `ApprovalDeniedError` has it sent to the client as is |
 | A second decision for the same request id | **Denied** (`APPROVAL_DENIED`) and logged; each request id takes one decision |
 
 `ApprovalGateMiddleware(handler, *, timeout=300.0, on_timeout="deny", include_arguments=True)`:

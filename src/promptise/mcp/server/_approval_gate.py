@@ -52,7 +52,7 @@ from promptise.approval import (
 )
 
 from ._context import RequestContext
-from ._errors import ApprovalDeniedError
+from ._errors import ApprovalDeniedError, MCPError
 from ._validation import validation_pending
 
 logger = logging.getLogger("promptise.server.approval")
@@ -221,7 +221,7 @@ class ApprovalGateMiddleware:
 
         try:
             # Only the gate's own timeout is a timeout here: a TimeoutError
-            # the handler raises propagates like its other errors (fail
+            # the handler raises is a handler error like any other (fail
             # closed), and never reaches on_timeout="allow".
             if hasattr(self._handler, "request_approval_ctx"):
                 decision = await _wait_for_decision(
@@ -244,6 +244,22 @@ class ApprovalGateMiddleware:
                 f"{self._timeout:.0f}s and was denied by default",
                 request_id=request.request_id,
             ) from None
+        except MCPError:
+            # A handler that refuses with a structured error means it.
+            raise
+        except Exception as exc:
+            logger.error(
+                "Approval: handler error for tool=%s request_id=%s: %s: %s",
+                ctx.tool_name,
+                request.request_id,
+                type(exc).__name__,
+                exc,
+            )
+            raise ApprovalDeniedError(
+                f"Approval for tool {ctx.tool_name!r} was denied: "
+                f"approval handler error: {type(exc).__name__}",
+                request_id=request.request_id,
+            ) from exc
 
         if not self._used_request_ids.claim(request.request_id):
             self._refuse_replay(ctx, request)

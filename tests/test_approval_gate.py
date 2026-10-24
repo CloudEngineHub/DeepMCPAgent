@@ -14,6 +14,7 @@ the SDK's in-memory transport (accept, decline, no elicitation support).
 from __future__ import annotations
 
 import asyncio
+import json
 
 import pytest
 from _mcp_memory import call_tool_directly, connected_session
@@ -126,6 +127,35 @@ class TestGateCore:
         result = await client.call_tool("refund", {"order_id": "o1"})
         assert "refunded" not in result[0].text
         assert "timed out after" not in result[0].text
+        assert "APPROVAL_DENIED" in result[0].text
+        assert "approval handler error: TimeoutError" in result[0].text
+
+    @pytest.mark.asyncio
+    async def test_handler_error_is_an_approval_denial(self):
+        # A crashing handler denies with a reason and the request id, not
+        # with a generic INTERNAL_ERROR; its message stays in the server log.
+        async def broken(request):
+            raise RuntimeError("pager API returned 503 for token sk-secret")
+
+        client = TestClient(_server_with_gate(broken))
+        result = await client.call_tool("refund", {"order_id": "o1"})
+        error = json.loads(result[0].text)["error"]
+        assert error["code"] == "APPROVAL_DENIED"
+        assert "approval handler error: RuntimeError" in error["message"]
+        assert "sk-secret" not in result[0].text
+        assert error["details"]["approval_request_id"]
+
+    @pytest.mark.asyncio
+    async def test_handler_mcp_error_is_passed_through(self):
+        from promptise.mcp.server._errors import ApprovalDeniedError
+
+        async def refuses(request):
+            raise ApprovalDeniedError("queue is closed for the weekend")
+
+        client = TestClient(_server_with_gate(refuses))
+        result = await client.call_tool("refund", {"order_id": "o1"})
+        assert "queue is closed for the weekend" in result[0].text
+        assert "handler error" not in result[0].text
 
     @pytest.mark.asyncio
     async def test_modified_arguments_fail_closed(self):
