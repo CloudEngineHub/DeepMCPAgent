@@ -838,3 +838,38 @@ class TestStreamInvocationTimeout:
         assert _of(seen, "invocation.timeout") == []
         assert agent.collector.query(event_types=["agent.error"]) == []
         assert recorded == [1]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("deadline", [0, 10])
+    async def test_breaking_out_without_aclose_cleans_up_quietly(self, method, deadline):
+        # A consumer that breaks out of `async for` leaves the generator to
+        # the event loop, which closes it in a new task with a copied
+        # context: resetting the stream's context variables there must not
+        # fail ("Task exception was never retrieved").
+        import gc
+
+        loop = asyncio.get_running_loop()
+        errors: list[dict[str, Any]] = []
+        previous = loop.get_exception_handler()
+        loop.set_exception_handler(lambda _loop, context: errors.append(context))
+        notifier, _ = _collector()
+        agent = await build_agent(
+            servers={},
+            model=_model(("lookup", {"query": "x"}), "done"),
+            extra_tools=[lookup],
+            events=notifier,
+            observe=True,
+            max_invocation_time=deadline,
+        )
+        recorded = _spy_failure_recording(agent)
+        try:
+            async for _ in _stream(agent, method):
+                break
+            for _ in range(5):
+                gc.collect()
+                await asyncio.sleep(0.01)
+        finally:
+            loop.set_exception_handler(previous)
+            await agent.shutdown()
+        assert errors == []
+        assert recorded == [1]

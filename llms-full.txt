@@ -11889,7 +11889,7 @@ The `data` of each event:
 | `invocation.start` | `model`; `streaming` when streamed |
 | `invocation.complete` | `duration_ms`; `streaming` |
 | `invocation.error` | `error`, `error_type`; `streaming` |
-| `invocation.timeout` | `timeout_seconds` |
+| `invocation.timeout` | `timeout_seconds`; `streaming` when streamed |
 | `tool.error` | `tool_name`, `error` (message), `error_type`, `duration_ms`; `code` and `retryable` when the tool reported them |
 | `tool.slow` | `tool_name`, `latency_ms`, `threshold_ms` |
 | `tool.progress` | `tool_name`, `progress`, `total`, `message` |

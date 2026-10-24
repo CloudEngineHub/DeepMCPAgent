@@ -253,6 +253,20 @@ def _uncancel(task: asyncio.Task[Any]) -> None:
         uncancel()
 
 
+def _reset_context_var(var: contextvars.ContextVar[Any], token: contextvars.Token[Any]) -> None:
+    """``var.reset(token)`` for a stream's cleanup.
+
+    A consumer that breaks out of a stream without closing it leaves the
+    generator to the event loop, which closes it in a new task with a copy
+    of the context.  The token belongs to another context there, and the
+    copy is thrown away after the task, so there is nothing to reset.
+    """
+    try:
+        var.reset(token)
+    except ValueError:
+        pass
+
+
 #: The deadline of the streamed run in progress, so the stream can record
 #: the invocation timeout (not a cancellation) as the run's error.
 _stream_deadline_var: contextvars.ContextVar[_StreamDeadline | None] = contextvars.ContextVar(
@@ -518,7 +532,7 @@ class PromptiseAgent:
         if token is not None:
             from .events import _scope_var
 
-            _scope_var.reset(token)
+            _reset_context_var(_scope_var, token)
 
     def _with_callbacks(self, config: dict[str, Any] | None) -> dict[str, Any] | None:
         """Add the observability and tool-event callback handlers to *config*."""
@@ -741,7 +755,7 @@ class PromptiseAgent:
                 yield item
         finally:
             await stream.aclose()
-            _stream_deadline_var.reset(token)
+            _reset_context_var(_stream_deadline_var, token)
 
     async def _assemble_with_engine(
         self,
@@ -1232,8 +1246,8 @@ class PromptiseAgent:
             # astream() yields raw graph chunks; the final text is not known here.
             self._end_run(_run, output=None, error=_run_error)
             self._pop_event_scope(_scope_token)
-            _invocation_ctx_var.reset(_inv_token)
-            _caller_ctx_var.reset(_ctx_token)
+            _reset_context_var(_invocation_ctx_var, _inv_token)
+            _reset_context_var(_caller_ctx_var, _ctx_token)
 
     async def _astream_inner(
         self,
@@ -1735,8 +1749,8 @@ class PromptiseAgent:
         finally:
             self._end_run(_run, output=_run_output, error=_run_error)
             self._pop_event_scope(_scope_token)
-            _invocation_ctx_var.reset(_inv_token)
-            _caller_ctx_var.reset(_ctx_token)
+            _reset_context_var(_invocation_ctx_var, _inv_token)
+            _reset_context_var(_caller_ctx_var, _ctx_token)
 
     def _log_stream_failure(self, exc: BaseException) -> None:
         """Log a streamed run's failure as one ERROR line.
