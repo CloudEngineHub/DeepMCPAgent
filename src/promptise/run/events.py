@@ -123,8 +123,7 @@ class EventBus:
             try:
                 subscriber(event)
             except Exception:
-                self.unsubscribe(subscriber)
-                self.dropped_subscribers += 1
+                self._drop(subscriber)
         return event
 
     def subscribe(self, subscriber: Subscriber, *, replay: bool = False) -> Subscriber:
@@ -136,8 +135,7 @@ class EventBus:
             try:
                 subscriber(event)
             except Exception:
-                self.unsubscribe(subscriber)
-                self.dropped_subscribers += 1
+                self._drop(subscriber)
                 break
         return subscriber
 
@@ -148,6 +146,16 @@ class EventBus:
                 self._subscribers.remove(subscriber)
             except ValueError:
                 pass
+
+    def _drop(self, subscriber: Subscriber) -> None:
+        # Counted only by the thread that removes it: a subscriber raising in
+        # several publishing threads at once is still one dropped subscriber.
+        with self._lock:
+            try:
+                self._subscribers.remove(subscriber)
+            except ValueError:
+                return
+            self.dropped_subscribers += 1
 
     def history(self, kinds: Iterable[str] | None = None) -> list[RunEvent]:
         """The kept events, oldest first, optionally only those of *kinds*."""

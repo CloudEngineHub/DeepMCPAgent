@@ -85,6 +85,23 @@ def test_bus_drops_a_raising_subscriber_and_is_thread_safe() -> None:
     assert sorted(good) == list(range(1, 801))
 
 
+def test_bus_counts_a_subscriber_raising_in_two_threads_once() -> None:
+    bus = EventBus()
+    both_inside = threading.Barrier(2, timeout=5)
+
+    def bad(event: dict[str, Any]) -> None:
+        both_inside.wait()
+        raise RuntimeError("boom")
+
+    bus.subscribe(bad)
+    threads = [threading.Thread(target=bus.publish, args=("t",)) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert bus.dropped_subscribers == 1
+
+
 # ---------------------------------------------------------------------------
 # prices and stats
 # ---------------------------------------------------------------------------

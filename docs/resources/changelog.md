@@ -17,6 +17,7 @@ All notable changes to Promptise Foundry are documented here.
 - **A sandbox container that failed to start was left behind** -- `DockerBackend.create_container` created the container, and when `start()` failed (for example an image without `/bin/bash`) it raised without removing it, so `docker ps -a` kept a `Created` container for every failed session. It is now removed before the error is raised.
 - **Breaking out of `astream()` or `astream_with_tools()` logged "Task exception was never retrieved: ValueError: <Token ...> was created in a different Context"** -- a consumer that leaves `async for` with `break` leaves the stream to the event loop, which closes it in another task, where resetting the run's context variables failed. The stream now cleans up there quietly. Wrapping the stream in `contextlib.aclosing()` still closes it at once.
 - **A scanner set to `BLOCK` PII or credentials without `redact_input=True` now says it doesn't block input** -- on input those findings are warnings unless `redact_input=True`, so `CredentialDetector(action=Action.BLOCK)` alone never refused a message. `PromptiseSecurityScanner` now logs a warning when it is created with such a setting. Behaviour is unchanged.
+- **The `promptise run` event bus could count one failing subscriber twice** -- a subscriber that raised in two publishing threads at the same time was dropped once but added to `EventBus.dropped_subscribers` by both, and the count was updated outside the bus lock. Only the thread that removes it counts it now.
 
 ### Docs
 
