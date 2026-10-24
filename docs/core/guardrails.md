@@ -639,6 +639,8 @@ await scanner.check_input("Email me at maria.keller@example.com")
 # "Email me at [EMAIL]"
 ```
 
+The same goes for `BLOCK`: `CredentialDetector(action=Action.BLOCK)` refuses a message carrying a key only with `redact_input=True`. Without it, the scanner logs a warning when it is created, and on input the finding is only logged.
+
 A custom guard can do the same: whatever string `check_input` returns replaces the user's message. Only plain-text messages are rewritten; multimodal content is scanned but sent unchanged.
 
 ---

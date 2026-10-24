@@ -660,6 +660,31 @@ class TestInputRedaction:
         with pytest.raises(GuardrailViolation):
             await scanner.check_input("my key is AKIAIOSFODNN7EXAMPLE")
 
+    def test_block_without_redact_input_warns_at_construction(self, caplog):
+        with caplog.at_level("WARNING", logger="promptise.guardrails"):
+            PromptiseSecurityScanner(
+                detectors=[
+                    PIIDetector(action=Action.BLOCK),
+                    CredentialDetector(action=Action.BLOCK),
+                ]
+            )
+        (record,) = caplog.records
+        assert record.getMessage().startswith("PII and credential findings are set to BLOCK")
+        assert "redact_input=True" in record.getMessage()
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"detectors": [CredentialDetector()]},  # REDACT, the default
+            {"detectors": [CredentialDetector(action=Action.BLOCK)], "redact_input": True},
+            {"on_credentials": Action.WARN},
+        ],
+    )
+    def test_no_warning_when_input_behaves_as_configured(self, caplog, kwargs):
+        with caplog.at_level("WARNING", logger="promptise.guardrails"):
+            PromptiseSecurityScanner(**kwargs)
+        assert caplog.records == []
+
     @pytest.mark.asyncio
     async def test_agent_sends_redacted_message_to_model(self):
         model = _ScriptedModel(responses=[AIMessage(content="Noted.")])

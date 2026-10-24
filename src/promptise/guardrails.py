@@ -2761,6 +2761,25 @@ class PromptiseSecurityScanner:
                     )
                 )
 
+        # On input, PII and credential findings are warnings unless
+        # redact_input=True: say so when a BLOCK was asked for explicitly.
+        if not redact_input:
+            blocked = [
+                name
+                for name, enabled, action in (
+                    ("PII", self.detect_pii, self._on_pii),
+                    ("credential", self.detect_credentials, self._on_credentials),
+                )
+                if enabled and action == Action.BLOCK
+            ]
+            if blocked:
+                logger.warning(
+                    "%s findings are set to BLOCK, which applies to output and tool "
+                    "results; on input they are only logged. Pass redact_input=True "
+                    "to block them on input too.",
+                    " and ".join(blocked),
+                )
+
     # ── Guard protocol ────────────────────────────────────────────────
 
     def warmup(self) -> None:
