@@ -491,7 +491,7 @@ config = ProcessConfig(
 )
 ```
 
-With `scan_payloads=True`, the payload is checked by a prompt-injection classifier before the agent runs. The scan reads exactly the payload text the prompt shows (the rendered JSON, keys included, cut at `max_payload_chars`), end to end, in 500-character windows that overlap by 50 characters, so nothing reaches the prompt unscanned. A flagged event is dead-lettered with reason `flagged by payload scan` and the agent never sees it. Flagged events don't count towards `max_consecutive_failures`.
+With `scan_payloads=True`, the payload is checked by a prompt-injection classifier before the agent runs. The scan reads exactly the payload text the prompt shows (the rendered JSON, keys included, cut at `max_payload_chars`), whole, so nothing reaches the prompt unscanned and pattern detectors (credentials, PII) see every match. A `PromptiseSecurityScanner` splits the text into windows for its models itself; any other scanner also gets the text in 500-character windows that overlap by 50 characters. A flagged event is dead-lettered with reason `flagged by payload scan` and the agent never sees it. Flagged events don't count towards `max_consecutive_failures`.
 
 The scanner is `ProcessConfig.guardrails` when that is a `PromptiseSecurityScanner` (its full rule set then applies to payloads), otherwise an injection-only `PromptiseSecurityScanner(detectors=[InjectionDetector()])`. The model needs `transformers` and `torch` and loads when the process starts. If it can't load, `start()` fails instead of silently skipping the scan.
 

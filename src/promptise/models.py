@@ -42,13 +42,15 @@ A provider's native LangChain integration can be opted into with
 ``Model(..., native=True)`` when it is installed.
 
 **Where secrets live.**  A ``.env`` file in the working directory (or a
-parent, up to the project root — the directory holding ``pyproject.toml`` or
-``.git``) is loaded before a provider's variables are checked — the same file
-the ``promptise`` CLI reads — so ``python my_agent.py`` and ``promptise run``
-see the same keys.  Only a regular file — on POSIX one that you own and
-that nobody else can write — is loaded (anything else is skipped with a
-warning naming it); variables already in the environment always win over
-the file, and nothing is loaded when ``PROMPTISE_NO_DOTENV=1``.
+parent, up to the project root: the nearest directory holding
+``promptise.toml``, ``pyproject.toml`` or ``.git``, or the working directory
+itself when there is none) is loaded before a provider's variables are
+checked.  It is the same file the ``promptise`` CLI reads, so
+``python my_agent.py`` and ``promptise run`` see the same keys.  Only a
+regular file — on POSIX one that you own and that nobody else can write —
+is loaded (anything else is skipped with a warning naming it); variables
+already in the environment always win over the file, and nothing is loaded
+when ``PROMPTISE_NO_DOTENV=1``.
 :func:`dotenv_origin` tells which file supplied a variable.
 """
 
@@ -101,8 +103,12 @@ _dotenv_filled: dict[str, tuple[str, str]] = {}
 _dotenv_skipped: set[str] = set()
 """Unsafe ``.env`` files already warned about — once per process, not once per lookup."""
 
-_PROJECT_ROOT_MARKERS: tuple[str, ...] = ("pyproject.toml", ".git")
-"""A directory holding one of these is the project root: the search for ``.env`` ends there."""
+_PROJECT_ROOT_MARKERS: tuple[str, ...] = ("promptise.toml", "pyproject.toml", ".git")
+"""A directory holding one of these is the project root: the search for ``.env`` ends there.
+
+``promptise.toml`` is the ``promptise run`` manifest: a project nested in
+another repository is its own project, and the enclosing repository's
+``.env`` is not its file."""
 
 _DOTENV_FIX = "fix its permissions/encoding, move it, or set PROMPTISE_NO_DOTENV=1"
 
@@ -171,9 +177,11 @@ def load_dotenv_if_present(*, cwd: str | os.PathLike[str] | None = None) -> str 
     """Load the nearest safe ``.env`` file from *cwd* (default: the working directory) upward.
 
     The search walks from *cwd* through its parents and stops after the
-    project root — the first directory holding ``pyproject.toml`` or
-    ``.git`` — so a file above the project (``/tmp/.env`` on a shared
-    host, another user's home) is never consulted.  A candidate is loaded
+    project root (the first directory holding ``promptise.toml``,
+    ``pyproject.toml`` or ``.git``), so a file above the project
+    (``/tmp/.env`` on a shared host, another user's home, the repository a
+    project folder is nested in) is never consulted.  With no project root
+    above *cwd*, only *cwd* itself is searched.  A candidate is loaded
     only when it is a regular file and, on POSIX, owned by you and not
     world-writable; anything else is skipped with a :class:`UserWarning`
     naming the file (once per process) and the search continues upward.
@@ -200,7 +208,9 @@ def load_dotenv_if_present(*, cwd: str | os.PathLike[str] | None = None) -> str 
         return None
 
     start = Path(cwd).absolute() if cwd is not None else Path.cwd()
-    for directory in (start, *start.parents):
+    chain = [start, *start.parents]
+    root = next((d for d in chain if _is_project_root(d)), start)
+    for directory in chain[: chain.index(root) + 1]:
         candidate = directory / ".env"
         st = _stat_dotenv(candidate)
         if st is not None:
@@ -218,9 +228,12 @@ def load_dotenv_if_present(*, cwd: str | os.PathLike[str] | None = None) -> str 
                             _dotenv_filled[key] = (path, value)
                     _dotenv_loaded = path
                 return path
-        if any(os.path.exists(os.path.join(directory, m)) for m in _PROJECT_ROOT_MARKERS):
-            break  # the project root: a .env above it is not this project's
     return None
+
+
+def _is_project_root(directory: Path) -> bool:
+    """Whether *directory* holds one of :data:`_PROJECT_ROOT_MARKERS`."""
+    return any(os.path.exists(os.path.join(directory, m)) for m in _PROJECT_ROOT_MARKERS)
 
 
 def load_env_file(path: str | os.PathLike[str]) -> list[str]:

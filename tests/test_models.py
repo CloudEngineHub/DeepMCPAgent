@@ -778,6 +778,7 @@ class TestDotenv:
         monkeypatch.setattr(m, "_dotenv_loaded", None)
         monkeypatch.setattr(m, "_dotenv_filled", {})
         monkeypatch.setattr(m, "_dotenv_skipped", set())
+        (tmp_path / "pyproject.toml").write_text("[project]\nname = 'p'\n", encoding="utf-8")
         (tmp_path / ".env").write_text("OPENAI_API_KEY=sk-from-dotenv\n", encoding="utf-8")
         sub = tmp_path / "app" / "src"
         sub.mkdir(parents=True)
@@ -817,6 +818,24 @@ class TestDotenv:
             "gitdir: /elsewhere\n", encoding="utf-8"
         )  # a worktree marker
         assert m.load_dotenv_if_present() is None
+
+    def test_a_project_nested_in_another_stops_at_its_own_manifest(self, project):
+        """A folder with promptise.toml inside another repository is its own
+        project: the enclosing repository's .env (with its keys) is not read."""
+        (project / "app" / "promptise.toml").write_text('main = "main.py"\n', encoding="utf-8")
+        assert m.load_dotenv_if_present() is None
+        assert "OPENAI_API_KEY" not in os.environ
+        result = runner.invoke(app, ["models", "check", "openai:gpt-5-mini"])
+        assert ".env loaded from" not in _out(result)
+        (project / "app" / ".env").write_text("OPENAI_API_KEY=sk-from-app\n", encoding="utf-8")
+        assert m.load_dotenv_if_present() == str(project / "app" / ".env")
+
+    def test_without_a_project_root_only_the_working_directory_is_searched(self, project):
+        (project / "pyproject.toml").unlink()  # nothing above marks a project
+        assert m.load_dotenv_if_present() is None
+        assert "OPENAI_API_KEY" not in os.environ
+        (project / "app" / "src" / ".env").write_text("GROQ_API_KEY=gsk-x\n", encoding="utf-8")
+        assert m.load_dotenv_if_present() == str(project / "app" / "src" / ".env")
 
     def test_dotenv_in_the_project_root_itself_is_loaded(self, project):
         (project / "app" / "pyproject.toml").write_text(

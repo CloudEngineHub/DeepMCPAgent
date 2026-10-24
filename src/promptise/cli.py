@@ -57,10 +57,12 @@ def _version_callback(
         console.print(get_version("promptise"))
         raise typer.Exit()
     # One rule for scripts and the CLI: .env from the working directory (or a
-    # parent, up to the project root), never overriding a set variable, off
-    # with PROMPTISE_NO_DOTENV=1. Loaded here rather than at import so that
-    # --version and --help work from any directory, and an unreadable file
-    # is one clean error instead of a traceback before typer even starts.
+    # parent, up to the project root: the nearest folder with promptise.toml,
+    # pyproject.toml or .git, else the working directory), never overriding a
+    # set variable, off with PROMPTISE_NO_DOTENV=1. Loaded here rather than
+    # at import so that --version and --help work from any directory, and an
+    # unreadable file is one clean error instead of a traceback before typer
+    # even starts.
     err = Console(stderr=True)
     try:
         loaded = load_dotenv_if_present()

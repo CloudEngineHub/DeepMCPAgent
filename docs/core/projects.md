@@ -527,7 +527,7 @@ The rules:
 - **Unsafe files are refused.** A file must be a regular file. On Linux and macOS it must be owned by you and not writable by other users. An unsafe or unreadable file is an error that names the file.
 - **`PROMPTISE_NO_DOTENV=1` turns file loading off.** No `.env`-style file is loaded. Use it in containers and CI, where the environment is set from outside.
 
-The CLI also loads a `.env` from the current directory (or a parent, up to the project root) before any command runs, under the same rules. See [Configuration & Secrets](../getting-started/configuration.md).
+The CLI also loads a `.env` from the current directory (or a parent, up to the project root) before any command runs, under the same rules. The folder holding `promptise.toml` is a project root, so a project nested in another repository never reads that repository's `.env`; list it in `[env] files` (`["../.env"]`) to use it on purpose. See [Configuration & Secrets](../getting-started/configuration.md).
 
 `promptise run` never shows variable values. The TUI and the run report list only whether each variable is set.
 

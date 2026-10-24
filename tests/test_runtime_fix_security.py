@@ -592,6 +592,21 @@ class TestPayloadScanCoverage:
         event = TriggerEvent(trigger_id="t", trigger_type="webhook", payload=payload)
         assert await process._scan_payload(event) == "prompt_injection"
 
+    async def test_a_long_key_across_a_window_boundary_is_flagged(self) -> None:
+        """The 500-character windows overlap by 50; a 136-character key from
+        offset 430 is in none of them, so the regex heads read the whole text."""
+        from promptise.guardrails import Action, CredentialDetector, PromptiseSecurityScanner
+
+        key = "sk-proj-" + "A" * 60 + "T3BlbkFJ" + "B" * 60
+        payload = "x" * 430 + key + " " + "y" * 400
+        assert not any(key in c for c in _payload_chunks(payload, 10_000))
+        process = AgentProcess("s", ProcessConfig())
+        process._payload_scanner = PromptiseSecurityScanner(
+            detectors=[CredentialDetector(action=Action.BLOCK)], redact_input=True
+        )
+        event = TriggerEvent(trigger_id="t", trigger_type="webhook", payload=payload)
+        assert await process._scan_payload(event) == "openai_api_key"
+
 
 # ===========================================================================
 # Hardening: webhook Host/Origin guard

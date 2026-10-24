@@ -64,10 +64,15 @@ Rules of the file:
   the file has nothing for it either). An empty value *in the file* sets
   nothing.
 - **Where it is looked for.** The directory you run in, then its parents,
-  stopping after the project root — the first directory holding
-  `pyproject.toml` or `.git`. A `.env` above your project (`/tmp/.env` on a
-  shared host, another checkout, somebody's home directory) is never read.
-  The first file found wins; nothing further up is merged in.
+  stopping after the project root: the first directory holding
+  `promptise.toml`, `pyproject.toml` or `.git`. A `.env` above your project
+  (`/tmp/.env` on a shared host, another checkout, somebody's home
+  directory) is never read. A project folder with its own `promptise.toml`
+  inside another repository is its own project, so the repository's `.env`
+  is not read; to share it on purpose, list it in the manifest
+  (`[env] files = ["../.env"]`). With no project root above you at all, only
+  the directory you run in is searched. The first file found wins; nothing
+  further up is merged in.
 - **Which files are trusted.** Only a regular file and, on POSIX, one that
   you own and that nobody else can write (Windows has neither owners nor
   mode bits in this sense, so only the regular-file check applies there).

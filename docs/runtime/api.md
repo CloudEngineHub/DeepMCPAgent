@@ -216,7 +216,7 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | `PATCH` | `/processes/{name}/budget` | Change `BudgetConfig` fields | Next budget check (`"next_budget_check"`) | `200` |
 | `PATCH` | `/processes/{name}/health` | Change `HealthConfig` fields | Next check (`"immediate"`) | `200` |
 | `PATCH` | `/processes/{name}/mission` | Change `MissionConfig` fields | Next evaluation and prompt (`"immediate"`) | `200` |
-| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs; `hmac_secret`, credential-like `custom_config` values and URL user info masked |: | `200` |
+| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs; `hmac_secret`, credential-like `custom_config` values and URL user info masked | Read only | `200` |
 | `POST` | `/processes/{name}/triggers` | Add a trigger (body: a `TriggerConfig`) | At once on an active process, else at the next start | `201` |
 | `DELETE` | `/processes/{name}/triggers/{trigger_id}` | Stop and remove a trigger | At once on an active process, else at the next start | `200` |
 
@@ -380,7 +380,7 @@ curl -X DELETE http://localhost:9100/api/v1/processes/monitor/triggers/cron-6d90
 |---|---|---|
 | Add | Created and started at once: `live: true`, `effective_from: "immediate"` | Added to the config: `live: false`, `effective_from: "next_start"` |
 | Remove a config trigger | Stopped at once and removed from the config: `live: true`, `"immediate"` | Removed from the config: `live: true`, `"next_start"` |
-| Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` |: |
+| Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` | `404 TRIGGER_NOT_FOUND`: stopping a process drops its agent-added triggers |
 
 Adding a trigger identical to one already configured gets `409 TRIGGER_EXISTS`; an invalid config or one that can't start gets `422 INVALID_CONFIG`; a `${VAR}` reference gets `403 ENV_REFERENCES_NOT_ALLOWED` and a `watch_path` outside `data_dir` `403 PATH_NOT_ALLOWED`; an unknown ID gets `404 TRIGGER_NOT_FOUND`. In the listing, `hmac_secret` is masked, and so are the values of `custom_config` keys that look like credentials (names containing `secret`, `token`, `password`, `api_key`, `auth`, `credential`, `signature` or `cookie`) and the user info of any URL value (`postgres://app:pw@db/x` is listed as `postgres://**********@db/x`). The old position-based IDs (`static_0`, `static_1`, ...) are still accepted on `DELETE`; the response then carries a `warning` naming the stable ID to use instead.
 
@@ -501,12 +501,24 @@ When the inbox holds `max_messages` messages, a new message first replaces an an
 
 ### Guardrail scanning
 
-With `scan_with_guardrails: true` (the default), each message is scanned when it arrives, in overlapping 500-character windows, and a flagged message is refused (`422 MESSAGE_REJECTED`). The scanner is, in order:
+With `scan_with_guardrails: true` (the default), each message is scanned when it arrives, and a flagged message is refused (`422 MESSAGE_REJECTED`). The whole message is scanned at once, so pattern detectors (credentials, PII) see every match, however long. A `PromptiseSecurityScanner` splits the text into windows for its models itself. Any other scanner also gets the message in overlapping 500-character windows, for models that read only a limited length. The scanner is, in order:
 
 1. `ProcessConfig.guardrails`, when it can scan text (a `PromptiseSecurityScanner` or any object with `scan_text()` or `check_input()`).
 2. The trigger payload scanner, when `trigger_delivery.scan_payloads` is on. It is loaded when the process starts; messages that arrived before (a created process already takes messages) are scanned then, and flagged ones are removed (an `/ask` waiting on one gets `422 MESSAGE_REJECTED`).
 
 With neither, messages are **not scanned**: the process logs a one-time warning and accepts them. Set `guardrails` (for example `PromptiseSecurityScanner(detectors=[InjectionDetector()])`) or `trigger_delivery.scan_payloads=True` to scan them, or `scan_with_guardrails: false` to accept messages unscanned without the warning. Only give inbox access to people you trust with the agent's instructions: a message lands in the agent's prompt.
+
+**Credentials and personal data.** The inbox applies the scanner's input policy, the same one `check_input()` applies to an agent's input. This covers messages scanned on arrival and messages scanned at start. Credentials are only found when the scanner has a credential detector. The default payload scanner checks for prompt injection only.
+
+| Scanner | A message with an API key in it |
+|---|---|
+| `PromptiseSecurityScanner(detectors=[CredentialDetector()])` | Accepted as sent. On input a credential is a warning, so the process logs one warning naming the finding categories and the message ID, never the key. |
+| The same with `redact_input=True` | Accepted with the key masked. The inbox stores the scanner's redacted text, so the agent never sees the value. PII the scanner redacts is masked the same way. |
+| `redact_input=True` and `CredentialDetector(action=Action.BLOCK)` | Refused with `422 MESSAGE_REJECTED`. The reason names the credential category. |
+
+Without `redact_input=True`, `CredentialDetector(action=Action.BLOCK)` is still a warning on input, so the message is accepted as in the first row.
+
+To hand an agent a secret it needs, use the process's [secrets](governance/secrets.md) instead of sending it in a message.
 
 ### From Python
 

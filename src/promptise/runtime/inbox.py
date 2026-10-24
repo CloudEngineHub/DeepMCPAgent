@@ -131,6 +131,20 @@ class MessageType(str, Enum):
 _PRIORITY_ORDER = {"low": 0, "normal": 1, "high": 2, "critical": 3}
 
 
+def _end_question(future: asyncio.Future[Any], exc: BaseException) -> None:
+    """End an unanswered question's wait with *exc*.
+
+    A waiter that is still there gets *exc* (through its shield).  The
+    future is marked retrieved, so a question nobody waits for any more
+    (its ``/ask`` timed out) does not log "Future exception was never
+    retrieved" when it is garbage collected.
+    """
+    if future.done():
+        return
+    future.set_exception(exc)
+    future.exception()
+
+
 @dataclass
 class InboxMessage:
     """A message from a human to a running agent.
@@ -483,11 +497,12 @@ class MessageInbox:
                 if self._messages.pop(message.message_id, None) is None:
                     continue
                 future = self._question_futures.pop(message.message_id, None)
-            if future is not None and not future.done():
-                future.set_exception(
+            if future is not None:
+                _end_question(
+                    future,
                     InboxMessageRejected(
                         f"Message removed: the guardrail scanner flagged it ({reason})", reason
-                    )
+                    ),
                 )
             logger.warning(
                 "Inbox: removed %s message %s from %s (flagged when scanned later: %s)",
@@ -587,12 +602,10 @@ class MessageInbox:
         """
         async with self._lock:
             for future in self._question_futures.values():
-                if not future.done():
-                    future.set_exception(
-                        InboxQuestionRemoved(
-                            "The inbox was cleared before the question was answered"
-                        )
-                    )
+                _end_question(
+                    future,
+                    InboxQuestionRemoved("The inbox was cleared before the question was answered"),
+                )
             self._messages.clear()
             self._question_futures.clear()
 
@@ -636,9 +649,9 @@ class MessageInbox:
         for mid in expired:
             self._messages.pop(mid, None)
             future = self._question_futures.pop(mid, None)
-            if future and not future.done():
-                future.set_exception(
-                    asyncio.TimeoutError("Question expired before agent responded")
+            if future is not None:
+                _end_question(
+                    future, asyncio.TimeoutError("Question expired before agent responded")
                 )
         if expired:
             logger.debug("Inbox: purged %d expired message(s)", len(expired))
@@ -684,8 +697,8 @@ class MessageInbox:
             )
         self._messages.pop(victim.message_id, None)
         future = self._question_futures.pop(victim.message_id, None)
-        if future and not future.done():
-            future.set_exception(InboxFullError("Question evicted from full inbox"))
+        if future is not None:
+            _end_question(future, InboxFullError("Question evicted from full inbox"))
         logger.info("Inbox: evicted %s message %s (inbox full)", victim.priority, victim.message_id)
 
 
@@ -797,21 +810,67 @@ def _text_windows(text: str, size: int = 500, overlap: int = 50) -> list[str]:
     return windows
 
 
+def _scans_whole_text(scanner: Any) -> bool:
+    """Whether one scan of the whole text covers everything for *scanner*.
+
+    :class:`~promptise.guardrails.PromptiseSecurityScanner` windows its
+    length-limited model heads itself (injection, toxicity, content
+    safety, NER) and runs its regex heads (credentials, PII) on the whole
+    text.  Another scanner may have a model that reads only the start of
+    a long text, so it also gets the text in windows.
+    """
+    try:
+        from promptise.guardrails import PromptiseSecurityScanner
+    except ImportError:  # pragma: no cover - guardrails ships with the package
+        return False
+    return isinstance(scanner, PromptiseSecurityScanner)
+
+
+def _scan_pieces(text: str, scanner: Any) -> list[str]:
+    """The texts *scanner* reads for *text*: the whole text first, windows if needed.
+
+    The whole text always comes first, so a pattern match (a credential
+    longer than the windows' overlap, say) is never cut in two at a
+    window boundary.  The windows follow only for a scanner that does not
+    window its models itself (see :func:`_scans_whole_text`).
+    """
+    if not text.strip():
+        return []
+    if _scans_whole_text(scanner):
+        return [text]
+    windows = _text_windows(text)
+    return [text] if len(windows) <= 1 else [text, *windows]
+
+
 async def scan_inbox_message(message: InboxMessage, scanner: Any) -> str | None:
     """Scan a message's content with a guardrail scanner.
 
-    Used for ``InboxConfig.scan_with_guardrails``.  The content is scanned
-    in overlapping 500-character windows as input.
+    Used for ``InboxConfig.scan_with_guardrails``.  The whole content is
+    scanned as input, so a credential is never cut in two at a window
+    boundary; a scanner that does not window its models itself also gets
+    overlapping 500-character windows (see :func:`_scans_whole_text`).
+    The scanner's own input policy applies, as
+    :meth:`~promptise.guardrails.PromptiseSecurityScanner.check_input`
+    applies it to an agent's input:
+
+    * a ``BLOCK`` finding refuses the message;
+    * with ``redact_input=True``, a redacted finding (a credential, PII)
+      is masked: ``message.content`` is replaced with the scanner's
+      redacted text, so the agent never sees the value;
+    * a credential that is only a warning (the default on input) lets the
+      message through and logs one warning naming the finding categories,
+      never the matched text.
 
     Args:
-        message: The message to scan.
+        message: The message to scan.  Its ``content`` is replaced when
+            the scanner redacts it.
         scanner: An object with ``scan_text(text, direction="input")``
             returning a report with ``passed`` and ``blocked`` (such as
             :class:`~promptise.guardrails.PromptiseSecurityScanner`), or
             with ``check_input(text)`` that raises when it blocks.
 
     Returns:
-        ``None`` when the content is clean, otherwise a short reason (the
+        ``None`` when the message is accepted, otherwise a short reason (the
         flagged finding categories).
     """
     scan_text = getattr(scanner, "scan_text", None)
@@ -821,15 +880,38 @@ async def scan_inbox_message(message: InboxMessage, scanner: Any) -> str | None:
             f"{type(scanner).__name__} has neither scan_text() nor check_input(); "
             "pass a guardrail scanner such as PromptiseSecurityScanner"
         )
-    for window in _text_windows(message.content):
+    redacted: str | None = None
+    credential_warnings: set[str] = set()
+    for index, piece in enumerate(_scan_pieces(message.content, scanner)):
         if scan_text is not None:
-            report = await scan_text(window, direction="input")
+            report = await scan_text(piece, direction="input")
             if not getattr(report, "passed", True):
                 blocked = getattr(report, "blocked", None) or []
                 return ", ".join(sorted({str(f.category) for f in blocked})) or "blocked"
+            if index == 0:  # the whole content
+                redacted = getattr(report, "redacted_text", None)
+            for finding in getattr(report, "findings", None) or []:
+                action = getattr(finding, "action", None)
+                if (
+                    getattr(finding, "detector", None) == "credential"
+                    and getattr(action, "value", action) == "warn"
+                ):
+                    credential_warnings.add(str(finding.category))
         else:
             try:
-                await check_input(window)
+                await check_input(piece)
             except Exception as exc:
                 return type(exc).__name__
+    if redacted is not None and getattr(scanner, "redact_input", False):
+        message.content = redacted
+    if credential_warnings:
+        logger.warning(
+            "Inbox: accepted %s message %s from %s with credentials in it (%s); they "
+            "reach the agent's prompt. Set redact_input=True on the scanner to mask "
+            "them; with CredentialDetector(action=Action.BLOCK) as well, they are refused",
+            message.message_type.value,
+            message.message_id,
+            message.sender_id,
+            ", ".join(sorted(credential_warnings)),
+        )
     return None

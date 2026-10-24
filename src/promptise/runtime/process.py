@@ -299,7 +299,8 @@ def _render_payload(payload: Any, limit: int) -> tuple[str, int]:
     A string is shown as is, anything else as indented JSON (``repr`` if
     it can't be serialised).  At most *limit* characters are shown; *cut*
     is how many were left out.  The payload scan reads exactly this text
-    (:func:`_payload_chunks`), so nothing reaches the prompt unscanned.
+    (whole, plus :func:`_payload_chunks` for some scanners), so nothing
+    reaches the prompt unscanned.
     """
     if isinstance(payload, str):
         text = payload
@@ -315,6 +316,9 @@ def _render_payload(payload: Any, limit: int) -> tuple[str, int]:
 
 def _payload_chunks(payload: Any, budget: int, size: int = 500, overlap: int = 50) -> list[str]:
     """Split the payload text the prompt shows into overlapping scan windows.
+
+    For a scanner that does not window its models itself; the whole text
+    is scanned too (see :meth:`AgentProcess._scan_payload`).
 
     The text is :func:`_render_payload`'s (at most *budget* characters,
     the same ``max_payload_chars`` cut as the prompt), covered end to end
@@ -3313,13 +3317,26 @@ class AgentProcess:
         Returns a description of the finding, or ``None`` when clean.
         The scan reads exactly the payload text the prompt shows (see
         :func:`_render_payload`: up to ``max_payload_chars`` characters),
-        in overlapping 500-character windows (the model reads 512 tokens
-        at most).
+        whole, so regex heads (credentials, PII) see every match.  A
+        scanner that does not window its models itself (the model reads
+        512 tokens at most) also gets overlapping 500-character windows.
         """
         if self._payload_scanner is None:
             return None
+        from .inbox import _scans_whole_text
+
         budget = self.config.trigger_delivery.max_payload_chars
-        for chunk in _payload_chunks(event.payload, budget):
+        text, _ = _render_payload(event.payload, budget)
+        if not text.strip():
+            return None
+        # The whole text first: a pattern match (a long credential) is never
+        # cut in two at a window boundary.  Windows only for a scanner that
+        # doesn't window its models itself.
+        pieces = [text]
+        if not _scans_whole_text(self._payload_scanner):
+            chunks = _payload_chunks(event.payload, budget)
+            pieces += chunks if len(chunks) > 1 else []
+        for chunk in pieces:
             report = await self._payload_scanner.scan_text(chunk, direction="input")
             if not report.passed:
                 blocked = getattr(report, "blocked", None) or []
