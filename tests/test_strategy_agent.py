@@ -260,6 +260,36 @@ class TestMCPErrorResults:
             await agent.shutdown()
 
 
+class TestStreamingLearns:
+    @pytest.mark.parametrize("method", ["astream", "astream_with_tools"])
+    @pytest.mark.asyncio
+    async def test_streamed_runs_record_failures_and_get_lessons(self, method):
+        model = _ToolCallingModel(tool="book_room", args={"room_id": "Zurich-4"})
+        synth = _SynthesisModel(_lessons(("book_room", LESSON)))
+        agent = await build_agent(
+            model=model,
+            servers={},
+            extra_tools=[book_room],
+            memory=InMemoryProvider(),
+            adaptive=AdaptiveStrategyConfig(
+                enabled=True, synthesis_threshold=1, synthesis_model=synth
+            ),
+        )
+        stream = getattr(agent, method)
+        try:
+            async for _ in stream(_ask("Book room 4 in Zurich"), caller=ALICE):
+                pass
+            # The streamed run's failure was recorded and became a lesson
+            assert "Tool 'book_room' failed with ValueError" in synth.prompts[0]
+            model.prompts.clear()
+            async for _ in stream(_ask("Book room 4 in Zurich"), caller=ALICE):
+                pass
+            # and the next streamed run gets it
+            assert LESSON in model.prompts[0]
+        finally:
+            await agent.shutdown()
+
+
 # ---------------------------------------------------------------------------
 # Poisoned tool errors through the agent
 # ---------------------------------------------------------------------------

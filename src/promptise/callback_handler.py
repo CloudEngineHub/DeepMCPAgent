@@ -94,6 +94,9 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
         self._llm_starts: dict[UUID, float] = {}
         self._tool_starts: dict[UUID, float] = {}
         self._tool_names: dict[UUID, str] = {}
+        # The tool.call entry of each running tool, for an approval gate's
+        # denial decided after it was recorded.
+        self._tool_call_entries: dict[UUID, Any] = {}
         # Tool runs answered from an earlier result instead of the tool
         # (the engine's ContextCompaction reuse_results).
         self._reused_tools: set[UUID] = set()
@@ -376,7 +379,9 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
             self._reused_tools.add(run_id)
             metadata["reused"] = True
             details = f"Reusing an earlier result for tool: {tool_name}"
-        self._record("tool.call", details=details, metadata=metadata)
+        entry = self._record("tool.call", details=details, metadata=metadata)
+        if entry is not None:
+            self._tool_call_entries[run_id] = entry
 
     def on_tool_end(
         self,
@@ -388,6 +393,7 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
         start = self._tool_starts.pop(run_id, None)
         duration = time.perf_counter() - start if start else None
         tool_name = self._tool_names.pop(run_id, None) or kwargs.get("name") or "unknown"
+        call_entry = self._tool_call_entries.pop(run_id, None)
 
         # A tool invoked as a tool call returns a ToolMessage; record its
         # content, and its status when the tool reported an error.  A tool
@@ -427,6 +433,10 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
         denial = denied_runs.pop(str(run_id), None) if denied_runs else None
         if denial is not None and not failed:
             metadata.update(denial)
+            if call_entry is not None:
+                # The gate decided after the tool.call was recorded: it
+                # carries the denial too, like a call the budget refused.
+                self.collector._annotate(call_entry, denial)
 
         if denial is not None and not failed:
             details = f"Tool call denied ({denial.get('denied_by')}): {tool_name}"
@@ -448,6 +458,7 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
         start = self._tool_starts.pop(run_id, None)
         duration = time.perf_counter() - start if start else None
         self._reused_tools.discard(run_id)
+        self._tool_call_entries.pop(run_id, None)
         self.error_count += 1
         run = self._current_run()
         if run is not None:

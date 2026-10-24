@@ -891,6 +891,15 @@ class ObservabilityCollector:
         finally:
             entry.duration = time.perf_counter() - start
 
+    def _annotate(self, entry: TimelineEntry, metadata: dict[str, Any]) -> None:
+        """Add *metadata* to an entry recorded earlier, sanitized like
+        :meth:`record` does.  Transporters that exported the entry when it
+        was recorded are not sent it again."""
+        if self._sanitizer is not None:
+            metadata = self._sanitizer(metadata)
+        with self._lock:
+            entry.metadata.update(metadata)
+
     # ------------------------------------------------------------------
     # Transporters
     # ------------------------------------------------------------------

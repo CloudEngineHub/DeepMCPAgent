@@ -457,6 +457,34 @@ async def test_trace_tools_observer_and_callbacks_show_the_reused_call(capsys) -
     assert callbacks.ends == 2
 
 
+async def test_streamed_tool_end_event_marks_the_repeat_as_reused() -> None:
+    from promptise.streaming import ToolEndEvent
+
+    @tool
+    async def lookup_user(user_id: str) -> str:
+        """Look up a user by id."""
+        return f"user {user_id}: Dana"
+
+    lookup = ("lookup_user", {"user_id": "u1"})
+    agent = await build_agent(
+        model=_Conversations({"Who is u1?": [[lookup, lookup]]}),
+        servers={},
+        agent_pattern=_agent_graph(_tools_node(lookup_user)),
+    )
+    try:
+        ends = [
+            event
+            async for event in agent.astream_with_tools(
+                {"messages": [{"role": "user", "content": "Who is u1?"}]}
+            )
+            if isinstance(event, ToolEndEvent)
+        ]
+    finally:
+        await agent.shutdown()
+
+    assert [e.reused for e in ends] == [False, True]
+
+
 async def test_streamed_runs_on_the_same_engine_each_run_the_tool() -> None:
     job_status, calls = _job_tool(completes_on=2)
     engine = PromptGraphEngine(

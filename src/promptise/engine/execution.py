@@ -211,6 +211,20 @@ def _unseen_calls(names: list[str]) -> str:
     return f"calls to {listed} whose results the model never saw"
 
 
+def _ends_on_answer(messages: list[Any]) -> bool:
+    """Whether *messages* end on a model answer: an ``AIMessage`` with text
+    and no tool calls."""
+    if not messages:
+        return False
+    last = messages[-1]
+    return (
+        isinstance(last, AIMessage)
+        and bool(last.content)
+        and not last.tool_calls
+        and not last.invalid_tool_calls
+    )
+
+
 def _pending_tools(messages: list[Any]) -> list[str] | None:
     """Tools whose results end *messages* unanswered, or ``None`` when the
     conversation ends on an answer (anything but a tool exchange).
@@ -1131,7 +1145,13 @@ class PromptGraphEngine:
     def _add_structured_answer(node: BaseNode, result: NodeResult, state: GraphState) -> bool:
         """Leave the output of a structured-output node that ends the run as
         the answer: an ``AIMessage`` holding its JSON, when the node added
-        no ``AIMessage`` of its own.  Returns whether a message was added."""
+        no ``AIMessage`` of its own.  Returns whether a message was added.
+
+        A reasoning node (one with ``text_output_fields``: ``ValidateNode``,
+        ``CritiqueNode``, ``ReflectNode`` ...) judges the answer before it
+        rather than writing one, so when the conversation already ends on an
+        answer, that answer stays the last message; the verdict is in
+        ``NodeResult.output`` and ``state.context[output_key]``."""
         if (
             getattr(node, "output_schema", None) is None
             or result.error
@@ -1139,6 +1159,8 @@ class PromptGraphEngine:
             or not result.raw_output
             or any(isinstance(m, AIMessage) for m in result.messages_added)
         ):
+            return False
+        if getattr(node, "text_output_fields", ()) and _ends_on_answer(state.messages):
             return False
         message = AIMessage(content=result.raw_output)
         state.messages.append(message)

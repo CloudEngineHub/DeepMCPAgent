@@ -354,7 +354,11 @@ A node with an `output_schema` adds no message to the conversation while the
 graph goes on (the model's reply is a parsed object, not an `AIMessage`). When
 such a node ends the run, the engine appends its output as JSON in a final
 `AIMessage`, so `ainvoke()` returns an answer; end a graph on a node that writes
-text when the answer should be prose.
+text when the answer should be prose. A reasoning node (`ValidateNode`,
+`CritiqueNode`, `ReflectNode`, `PlanNode` ...) judges or plans around an answer
+instead of writing one: when the conversation already ends on an answer, that
+answer stays the last message, and the node's output is in `NodeResult.output`
+and `state.context[output_key]` (`"validation"` for a `ValidateNode`).
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|

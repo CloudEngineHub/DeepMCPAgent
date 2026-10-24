@@ -100,8 +100,10 @@ class ToolEndEvent(StreamEvent):
         tool_index: 0-based index of this tool call; its ``tool_start``
             event has the same index.
         reused: ``True`` when the call was answered from an earlier
-            result of the same call instead of running the tool (only for
-            tools opted in with ``ContextCompaction(reuse_results=...)``).
+            result of the same call instead of running the tool: a tool
+            opted in with ``ContextCompaction(reuse_results=...)``, or a
+            repeat of the same call in one model turn of a
+            ``ToolNode(deduplicate=True)``.
     """
 
     type: str = "tool_end"

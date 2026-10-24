@@ -20,6 +20,7 @@ from promptise.engine import (
     PromptGraph,
     PromptGraphEngine,
     PromptNode,
+    ValidateNode,
     node,
 )
 from promptise.testing import ScriptedModel, ToolCall
@@ -330,3 +331,61 @@ class TestStructuredAnswer:
         graph.set_entry("judge")
         chunks = [c async for c in PromptGraphEngine(graph, model).astream(QUESTION)]
         assert chunks[-1]["messages"][-1].content == '{"passes":false}'
+
+    @pytest.mark.asyncio
+    async def test_validate_node_at_the_end_keeps_the_answer_it_checked(self):
+        class Verdict(BaseModel):
+            passes: bool
+            issues: list[str]
+
+        seen: dict[str, Any] = {}
+
+        class Capture:
+            async def post_node(self, node, result, state):
+                seen.update(state.context)
+                return result
+
+        model = ScriptedModel(
+            ["North missed.", ToolCall("Verdict", {"passes": True, "issues": []})]
+        )
+        graph = PromptGraph(
+            "g",
+            nodes=[
+                PromptNode("act", default_next="verify"),
+                ValidateNode("verify", output_schema=Verdict, on_pass="__end__", on_fail="act"),
+            ],
+        )
+        graph.set_entry("act")
+        out = await PromptGraphEngine(graph, model, hooks=[Capture()]).ainvoke(QUESTION)
+        assert [m.type for m in out["messages"]] == ["human", "ai"]
+        assert out["messages"][-1].content == "North missed."
+        # The verdict stays under the node's output_key.
+        assert seen["validation"] == {"passes": True, "issues": []}
+
+    @pytest.mark.asyncio
+    async def test_validate_node_with_no_answer_before_it_leaves_its_verdict(self):
+        class Verdict(BaseModel):
+            passes: bool
+
+        model = ScriptedModel([ToolCall("Verdict", {"passes": True})])
+        graph = PromptGraph("g", nodes=[ValidateNode("verify", output_schema=Verdict)])
+        graph.set_entry("verify")
+        out = await PromptGraphEngine(graph, model).ainvoke(QUESTION)
+        assert out["messages"][-1].content == '{"passes":true}'
+
+    @pytest.mark.asyncio
+    async def test_schema_prompt_node_after_an_answer_still_leaves_its_output(self):
+        class Invoice(BaseModel):
+            total: int
+
+        model = ScriptedModel(["The total is 12.", ToolCall("Invoice", {"total": 12})])
+        graph = PromptGraph(
+            "g",
+            nodes=[
+                PromptNode("draft", default_next="extract"),
+                PromptNode("extract", output_schema=Invoice, default_next="__end__"),
+            ],
+        )
+        graph.set_entry("draft")
+        out = await PromptGraphEngine(graph, model).ainvoke(QUESTION)
+        assert out["messages"][-1].content == '{"total":12}'

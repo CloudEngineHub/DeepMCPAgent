@@ -126,7 +126,7 @@ A tool call can be refused before the tool runs: by the Agent Runtime's [autonom
 | Refused by | `tool.call` | `tool.result` |
 |---|---|---|
 | Autonomy budget | `status="denied"`, `denied_by="budget"`, `reason`, `limit_name`, `limit_value`, `current_value`, `arguments` | the same fields, `latency_ms=0` |
-| Approval gate | as for any call | `status="denied"`, `denied_by="approval"`, `reason`, `decided_by` (`reviewer`, `classifier`, `gate`), `request_id` |
+| Approval gate | as for any call, then the same denial fields as the `tool.result` once the gate decides | `status="denied"`, `denied_by="approval"`, `reason`, `decided_by` (`reviewer`, `classifier`, `gate`), `request_id` |
 
 ```python
 denied = [
@@ -136,6 +136,8 @@ denied = [
 for e in denied:
     print(e.metadata["tool_name"], e.metadata["denied_by"], e.metadata["reason"])
 ```
+
+The gate decides after a gated call's `tool.call` is recorded, so the entry is marked in place: the collector's entries and a `CALLBACK` transporter's entry objects have the fields, while a transporter that wrote the entry out when the call started (a log or a file) has it without them.
 
 `get_stats()` counts them as `tool_denied_count`, not as errors, and the [`approval.*` events](#what-gets-recorded) of the gate are on the timeline next to the call, with the same `parent_id`. `promptise run --devtools` prints each refusal once (`⊘ wire_money refused (budget) ...`), and its summary adds a `refused` count; the TUI shows the call with status `denied`.
 

@@ -3,9 +3,9 @@
 * A call the autonomy budget refuses (``max_irreversible_per_run``) is a
   ``tool.call`` + ``tool.result`` with ``status="denied"`` and the reason;
   before, only the journal and the ``permission_denied`` hook saw it.
-* An approval denial marks the call's ``tool.result`` as denied, and the
-  ``approval.*`` events reach the timeline (and so the ``CALLBACK``
-  transporter), not only the event notifier.
+* An approval denial marks the call's ``tool.call`` and ``tool.result`` as
+  denied, and the ``approval.*`` events reach the timeline (and so the
+  ``CALLBACK`` transporter), not only the event notifier.
 * ``promptise run --devtools`` shows and counts refused calls.
 """
 
@@ -205,6 +205,18 @@ class TestApprovalOnTheTimeline:
         assert first.metadata["reason"] == "too much"
         assert "status" not in second.metadata
         assert len(_of(seen, "tool.call")) == 2
+
+    async def test_denied_call_is_marked_denied_too(self) -> None:
+        # The gate decides after the tool.call is recorded; the entry is
+        # marked like a call the budget refused.
+        seen: list[TimelineEntry] = []
+        await _run_approval([False, True], seen)
+        first, second = _of(seen, "tool.call")
+        assert first.metadata["status"] == "denied"
+        assert first.metadata["denied_by"] == "approval"
+        assert first.metadata["reason"] == "too much"
+        assert first.metadata["arguments"] == {"amount": 1}
+        assert "status" not in second.metadata
 
     async def test_approval_timeout_is_on_the_timeline(self) -> None:
         seen: list[TimelineEntry] = []
