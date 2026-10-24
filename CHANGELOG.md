@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.10.0 — 2026-10-24
 
 Security fixes for custom MCP auth providers, approval gates and inbox scanning, a deadline for streamed runs, and fixes found while checking every guide against 1.9.0.
 
